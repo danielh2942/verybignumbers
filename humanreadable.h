@@ -223,26 +223,26 @@ inline bool operator!=(HumanReadableNum const& lhs, HumanReadableNum const& rhs)
 
 inline bool operator<(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
 	if(!lhs.m_signed && rhs.m_signed) {
-		return true;
-	} else if(lhs.m_signed && !rhs.m_signed) {
 		return false;
+	} else if(lhs.m_signed && !rhs.m_signed) {
+		return true;
 	} else if(!lhs.m_signed && !rhs.m_signed) {
-		if(lhs.m_data.size() > rhs.m_data.size()) return true;
-		if(rhs.m_data.size() > lhs.m_data.size()) return false;
+		if(lhs.m_data.size() > rhs.m_data.size()) return false;
+		if(rhs.m_data.size() > lhs.m_data.size()) return true;
 		for(std::size_t idx = lhs.m_data.size() - 1; idx >= 1; idx--) {
-			if(lhs.m_data[idx] < rhs.m_data[idx]) return false;
-			if(lhs.m_data[idx] > rhs.m_data[idx]) return true;
+			if(lhs.m_data[idx] < rhs.m_data[idx]) return true;
+			if(lhs.m_data[idx] > rhs.m_data[idx]) return false;
 		}
-		return (lhs.m_data[0] > rhs.m_data[0]);
+		return (lhs.m_data[0] < rhs.m_data[0]);
 	}
 	
-	if (lhs.m_data.size() < rhs.m_data.size()) return true;
-	if (lhs.m_data.size() > rhs.m_data.size()) return false;
+	if (lhs.m_data.size() > rhs.m_data.size()) return true;
+	if (lhs.m_data.size() < rhs.m_data.size()) return false;
 	for(std::size_t idx = lhs.m_data.size() - 1; idx >= 1; idx--) {
-		if(lhs.m_data[idx] > rhs.m_data[idx]) return false;
-		if(lhs.m_data[idx] < rhs.m_data[idx]) return true;
+		if(lhs.m_data[idx] < rhs.m_data[idx]) return false;
+		if(lhs.m_data[idx] > rhs.m_data[idx]) return true;
 	}
-	return (lhs.m_data[0] < rhs.m_data[0]);
+	return (lhs.m_data[0] > rhs.m_data[0]);
 }
 
 inline bool operator<=(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {

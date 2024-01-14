@@ -25,7 +25,23 @@ TEST_CASE("Test constructor works as expected", "[constructor]") {
 }
 
 TEST_CASE("Verify subtraction works as expected", "[subtraction]") {
-	auto testVals = GENERATE(take(100, pair_random<int>(INT32_MIN + 1,INT32_MAX)));
-	// TODO:get this working properly. handle edge cases and stuff
-	CHECK(true);
+	// Testing the interval [-2,500,000 2,500,000] prevents rollover
+	auto testVals = GENERATE(take(100, pair_random<int>(-2500000,2500000)));
+	HumanReadableNum tv1{testVals.first};
+	HumanReadableNum tv2{testVals.second};
+	int expected = testVals.first - testVals.second;
+	HumanReadableNum result = tv1 - tv2;
+	INFO("Expected = " << expected << " Result = " << result);
+	CHECK(result == expected);
+}
+
+TEST_CASE("Verify less than works", "[lt_operator]") {
+	// Testing the interval [-2,500,000 2,500,000] prevents rollover
+	auto testVals = GENERATE(take(100, pair_random<int>(-2500000,2500000)));
+	HumanReadableNum tv1{testVals.first};
+	HumanReadableNum tv2{testVals.second};
+	bool expected = testVals.first < testVals.second;
+	bool result = tv1 < tv2;
+	INFO("Expected = " << expected << " Result = " << result);
+	CHECK(result == expected);
 }
