@@ -70,24 +70,19 @@ struct HumanReadableNum {
 		char carry = 0;
 		std::size_t limit = std::min(m_data.size(),add.m_data.size());
 		for(std::size_t idx = 0; idx < limit; idx++) {
-			carry += m_data[idx]&0x0F + add.m_data[idx]&0x0F;
+			carry += (m_data[idx] - '0') + (add.m_data[idx] - '0');
 			m_data[idx] = '0' + (carry % 10);
 			carry /= 10;
 		}
-		if(carry == 0) {
-			return *this;
-		}
 
-		if(limit == m_data.size()) {
-			m_data.emplace_back('1');
-		} else if ( m_data.size() > limit) {
+		if ( m_data.size() > limit) {
 			for(std::size_t idx = limit; (idx < m_data.size()) && (carry != 0); idx++) {
 				carry += m_data[idx] & 0x0F;
 				m_data[idx] = '0' + (carry % 10);
 				carry /= 10;
 			}
-		} else {
-			for(std::size_t idx = limit; (idx < add.m_data.size()) && (carry != 0); idx++) {
+		} else if(add.m_data.size() > limit) {
+			for(std::size_t idx = limit; (idx < add.m_data.size()); idx++) {
 				carry += add.m_data[idx] & 0x0F;
 				m_data.emplace_back('0' + (carry % 10));
 				carry /= 10;
@@ -146,7 +141,7 @@ struct HumanReadableNum {
 		std::size_t limit = std::min(m_data.size(), t.m_data.size());
 		for(std::size_t idx = 0; idx < limit; idx++) {
 			temp = m_data[idx] - carry;
-			carry = m_data[idx] < t.m_data[idx];
+			carry = temp < t.m_data[idx];
 			m_data[idx] = ((temp + (10 * carry)) - t.m_data[idx]) + '0';
 		}
 
