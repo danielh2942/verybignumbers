@@ -13,8 +13,8 @@
 
 #include <utility>
 
-
-class RandomPairGenerator : public Catch::Generators::IGenerator<std::pair<unsigned int, unsigned int>> {
+template<typename T>
+class RandomPairGenerator : public Catch::Generators::IGenerator<std::pair<T, T>> {
 	std::minstd_rand m_rand;
 	std::uniform_int_distribution<unsigned int> m_dist;
 	std::pair<unsigned int, unsigned int> current;
@@ -27,7 +27,9 @@ public:
 		static_cast<void>(next());
 	}
 
-	std::pair<unsigned int, unsigned int> const& get() const override;
+	std::pair<T, T> const& get() const override {
+		return current;
+	}
 
 	bool next() override {
 		current = {m_dist(m_rand), m_dist(m_rand)};
@@ -35,13 +37,10 @@ public:
 	}
 };
 
-inline std::pair<unsigned int, unsigned int> const& RandomPairGenerator::get() const {
-	return current;
-}
-
-inline Catch::Generators::GeneratorWrapper<std::pair<unsigned int, unsigned int>> pair_random(unsigned int low, unsigned int high) {
-	return Catch::Generators::GeneratorWrapper<std::pair<unsigned int, unsigned int>>(
-			new RandomPairGenerator(low,high)
+template<typename T>
+Catch::Generators::GeneratorWrapper<std::pair<T, T>> pair_random(T low, T high) {
+	return Catch::Generators::GeneratorWrapper<std::pair<T, T>>(
+			new RandomPairGenerator<T>(low,high)
 	);
 }
 

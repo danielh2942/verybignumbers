@@ -15,7 +15,7 @@ TEST_CASE("uint32 round trip conversion works", "[constructor]") {
 }
 
 TEST_CASE("Check Addition works", "[addition]") {
-	auto testVals = GENERATE(take(100, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(100, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a + b;
@@ -27,7 +27,7 @@ TEST_CASE("Check Addition works", "[addition]") {
 }
 
 TEST_CASE("Check Subtraction works", "[subtraction]") {
-	auto testVals = GENERATE(take(1000, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(1000, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a - b;
@@ -39,7 +39,7 @@ TEST_CASE("Check Subtraction works", "[subtraction]") {
 }
 
 TEST_CASE("Check Multiplication works", "[multiplication]") {
-	auto testVals = GENERATE(take(100, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(100, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a * b;
@@ -51,7 +51,7 @@ TEST_CASE("Check Multiplication works", "[multiplication]") {
 }
 
 TEST_CASE("Check Division works", "[division]") {
-	auto testVals = GENERATE(take(100, filter([](std::pair<unsigned int, unsigned int> const& i) {return (i.second != 0);}, pair_random(0U, UINT32_MAX))));
+	auto testVals = GENERATE(take(100, filter([](std::pair<unsigned int, unsigned int> const& i) {return (i.second != 0);}, pair_random<unsigned int>(0U, UINT32_MAX))));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a / b;
@@ -63,7 +63,7 @@ TEST_CASE("Check Division works", "[division]") {
 }
 
 TEST_CASE("Check Modulus works", "[modulus]") {
-	auto testVals = GENERATE(take(100, filter([](std::pair<unsigned int, unsigned int> const& i) {return (i.second != 0);}, pair_random(0U, UINT32_MAX))));
+	auto testVals = GENERATE(take(100, filter([](std::pair<unsigned int, unsigned int> const& i) {return (i.second != 0);}, pair_random<unsigned int>(0U, UINT32_MAX))));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a % b;
@@ -75,7 +75,7 @@ TEST_CASE("Check Modulus works", "[modulus]") {
 }
 
 TEST_CASE("Check AND works", "[bitand]") {
-	auto testVals = GENERATE(take(100, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(100, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a & b;
@@ -87,7 +87,7 @@ TEST_CASE("Check AND works", "[bitand]") {
 }
 
 TEST_CASE("Check OR works", "[bitor]") {
-	auto testVals = GENERATE(take(100, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(100, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a | b;
@@ -99,7 +99,7 @@ TEST_CASE("Check OR works", "[bitor]") {
 }
 
 TEST_CASE("Check XOR works", "[bitxor]") {
-	auto testVals = GENERATE(take(100, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(100, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 	std::uint32_t res = a ^ b;
@@ -120,7 +120,7 @@ TEST_CASE("Check NOT works", "[bitnot]") {
 }
 
 TEST_CASE("Check Bitshift left works", "[bitshiftleft]") {
-	auto testVals = GENERATE(take(1000, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(1000, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t displacement = testVals.second % 32;
 	auto res = a << displacement;
@@ -132,7 +132,7 @@ TEST_CASE("Check Bitshift left works", "[bitshiftleft]") {
 }
 
 TEST_CASE("Check Bitshift right works", "[bitshiftright]") {
-	auto testVals = GENERATE(take(1000, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(1000, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t displacement = testVals.second % 32;
 	std::uint32_t res = a >> displacement;
@@ -143,7 +143,7 @@ TEST_CASE("Check Bitshift right works", "[bitshiftright]") {
 }
 
 TEST_CASE("Check LT Comparison operator",  "[ltcomp]") {
-	auto testVals = GENERATE(take(1000, pair_random(0U, UINT32_MAX)));
+	auto testVals = GENERATE(take(1000, pair_random<unsigned int>(0U, UINT32_MAX)));
 	std::uint32_t a = testVals.first;
 	std::uint32_t b = testVals.second;
 
