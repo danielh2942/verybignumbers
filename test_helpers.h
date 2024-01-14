@@ -16,11 +16,11 @@
 template<typename T>
 class RandomPairGenerator : public Catch::Generators::IGenerator<std::pair<T, T>> {
 	std::minstd_rand m_rand;
-	std::uniform_int_distribution<unsigned int> m_dist;
-	std::pair<unsigned int, unsigned int> current;
+	std::uniform_int_distribution<T> m_dist;
+	std::pair<T, T> current;
 public:
 
-	RandomPairGenerator(unsigned int low, unsigned int high):
+	RandomPairGenerator(T low, T high):
 		m_rand{std::random_device{}()},
 		m_dist(low, high)
 	{
