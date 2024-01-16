@@ -78,7 +78,6 @@ struct HumanReadableNum {
 // Arithmetic
 	/*
 	 * Add two HumanReadableNums together
-	 * TODO: Negative number handling (This will come with subtraction)
 	 */
 	HumanReadableNum& operator+=(HumanReadableNum const& add) {
 		if(m_signed != add.m_signed) {
@@ -111,6 +110,8 @@ struct HumanReadableNum {
 		if(carry) {
 			m_data.emplace_back('1');
 		}
+
+		while((m_data.size() > 1) && (m_data[m_data.size() - 1] == '0')) m_data.pop_back();
 		return *this;
 	}
 
@@ -221,44 +222,22 @@ struct HumanReadableNum {
 			return 0;
 		}
 
+		// This uses a Lookup table as multiplication of base 10 on a computer is annoying
 		HumanReadableNum result = 0;
-		
-		char carry = 0;
-		char tmp = 0;
+		HumanReadableNum temp = 0;
 		for(std::size_t idx = 0; idx < val.m_data.size(); idx++) {
 			if(val.m_data[idx] == '0') continue;
-			while(idx > result.m_data.size()) result.m_data.push_back('0');
-			for(std::size_t idy = 0; idy < m_data.size(); idy++) {
-				tmp = (m_data[idy] - '0');
-				tmp *= (val.m_data[idx] - '0');
-				tmp += carry;
-				if((idx+idy) == result.m_data.size()) {
-					result.m_data.emplace_back((tmp % 10) + '0');
-				} else {
-					// Bring the carry up the number and whatever
-					for(std::size_t idz = idx+idy; idz < result.m_data.size(); idz++) {
-						tmp += (result.m_data[idz] - '0');
-						result.m_data[idz] = (tmp % 10) + '0';
-						tmp /= 10;
-					}
-					if(tmp != 0) {
-						result.m_data.emplace_back(tmp + '0');
-					}
-					tmp = 0;
-				}
-				carry = tmp / 10;
+			while((idx + 1) >= temp.m_data.size()) {
+				temp.m_data.emplace_back('0');
 			}
-			if(carry != 0) {
-				for(std::size_t idy = m_data.size(); idy < result.m_data.size(); idy++) {
-					tmp = result.m_data[idy] - '0';
-					tmp += carry;
-					result.m_data[idy] = (tmp%10) + '0';
-					carry = tmp / 10;
-				}
-				if(carry != 0) {
-					result.m_data.emplace_back(carry + '0');
-					carry = 0;
-				}
+			for(std::size_t idy = 0; idy < m_data.size(); idy++) {
+				if((idx + idy + 1) >= temp.m_data.size()) temp.m_data.emplace_back('0');
+				auto lutres = sc_multiLUT[((m_data[idy] - '0') * 10) + (val.m_data[idx] - '0')];
+				temp.m_data[idx+idy] = lutres[0];
+				temp.m_data[idx+idy+1] = lutres[1];
+				result += temp;
+				temp.m_data[idx+idy] = '0';
+				temp.m_data[idx+idy+1] = '0';
 			}
 		}
 
@@ -288,17 +267,19 @@ private:
 	bool			  m_signed; // If the number is signed and whatever
 
 private:
+	// Lookup table for multiplication.
+	// These are all back to front
 	static constexpr std::string_view sc_multiLUT[]  = {
-			"0", "0", "0", "0", "0", "0", "0", "0", "0", "0",
-			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-			"0", "2", "4", "6", "8", "10", "12", "14", "16", "18",
-			"0", "3", "6", "9", "12", "15", "18", "21", "24", "27", 
-			"0", "4", "8", "12", "16", "20", "24", "28", "32", "36", 
-			"0", "5", "10", "15", "20", "25", "30", "35", "40", "45",
-			"0", "6", "12", "18", "24", "30", "36", "42", "48", "54",
-			"0", "7", "14", "21", "28", "35", "42", "49", "56", "63", 
-			"0", "8", "16", "24", "32", "40", "48", "56", "64", "72", 
-			"0", "9", "18", "27", "36", "45", "54", "63", "72", "81"};
+			"00", "00", "00", "00", "00", "00", "00", "00", "00", "00",
+			"00", "10", "20", "30", "40", "50", "60", "70", "80", "90",
+			"00", "20", "40", "60", "80", "01", "21", "41", "61", "81",
+			"00", "30", "60", "90", "21", "51", "81", "12", "42", "72", 
+			"00", "40", "80", "21", "61", "02", "42", "82", "23", "63", 
+			"00", "50", "01", "51", "02", "52", "03", "53", "04", "54",
+			"00", "60", "21", "81", "42", "03", "63", "24", "84", "45",
+			"00", "70", "41", "12", "82", "53", "24", "94", "65", "36", 
+			"00", "80", "61", "42", "23", "04", "84", "65", "46", "27", 
+			"00", "90", "81", "72", "63", "54", "45", "36", "27", "18"};
 };
 
 inline bool operator==(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
