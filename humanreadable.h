@@ -6,6 +6,7 @@
  */
 
 #include <algorithm>
+#include <compare>
 #include <string_view>
 #ifndef HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5
 #define HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5 1
@@ -13,6 +14,7 @@
 #include <vector>
 #include <cmath>
 #include <cstddef>
+#include <concepts>
 
 /*
  * HUMAN READABLE NUMBER
@@ -27,8 +29,15 @@ struct HumanReadableNum {
 	HumanReadableNum(): m_data{'0'}, m_signed{false}
 	{}
 
-	HumanReadableNum(int x): m_data{}, m_signed(std::signbit(x)) {
+	HumanReadableNum(std::signed_integral auto x): m_data{}, m_signed(std::signbit(x)) {
 		if(m_signed) x *= -1;
+		while(x != 0) {
+			m_data.emplace_back((x%10)+'0');
+			x/=10;
+		}
+	}
+
+	HumanReadableNum(std::unsigned_integral auto x): m_data{}, m_signed{false} {
 		while(x != 0) {
 			m_data.emplace_back((x%10)+'0');
 			x/=10;
@@ -53,17 +62,13 @@ struct HumanReadableNum {
 
 // Comparison Operators
 	friend bool operator==(HumanReadableNum const& lhs, HumanReadableNum const& rhs);
-	friend bool operator!=(HumanReadableNum const& lhs, HumanReadableNum const& rhs);
-	friend bool operator<(HumanReadableNum const& lhs, HumanReadableNum const& rhs);
-	friend bool operator>(HumanReadableNum const& lhs, HumanReadableNum const& rhs);
-	friend bool operator<=(HumanReadableNum const& lhs, HumanReadableNum const& rhs);
-	friend bool operator>=(HumanReadableNum const& lhs, HumanReadableNum const& rhs);
+	friend std::strong_ordering operator<=>(HumanReadableNum const& lhs, HumanReadableNum const& rhs);
 
 // Mathematical functions
 	friend HumanReadableNum abs(const HumanReadableNum &a);
 
 // Assignment Operators
-	HumanReadableNum& operator=(int x) {
+	HumanReadableNum& operator=(std::integral auto x) {
 		HumanReadableNum a{x};
 		m_data.swap(a.m_data);
 		m_signed = a.m_signed;
@@ -122,7 +127,7 @@ struct HumanReadableNum {
 
 	HumanReadableNum& operator-=(HumanReadableNum const& t) {
 		// Prevent -0
-		if(t == *this) {
+		if(&t == this) {
 			m_data = {'0'};
 			m_signed = false;
 			return *this;
@@ -297,64 +302,39 @@ private:
 };
 
 inline bool operator==(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
-	if(&lhs == &rhs) return true;
-
-	// TODO:Add handles to avoid -0
-	if(lhs.m_signed != rhs.m_signed) return false;
-
-	if(lhs.m_data.size() != rhs.m_data.size()) return false;
-
-	for(std::size_t idx = 0; idx < lhs.m_data.size(); idx++) {
-		if(lhs.m_data[idx] != rhs.m_data[idx]) return false;
-	}
-
-	return true;
-}
-
-inline bool operator!=(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
-	return !(lhs == rhs);
-}
-
-inline bool operator<(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
-	if(!lhs.m_signed && rhs.m_signed) {
-		return false;
-	} else if(lhs.m_signed && !rhs.m_signed) {
-		return true;
-	} else if(!lhs.m_signed && !rhs.m_signed) {
-		if(lhs.m_data.size() > rhs.m_data.size()) return false;
-		if(rhs.m_data.size() > lhs.m_data.size()) return true;
-		for(std::size_t idx = lhs.m_data.size() - 1; idx >= 1; idx--) {
-			if(lhs.m_data[idx] < rhs.m_data[idx]) return true;
-			if(lhs.m_data[idx] > rhs.m_data[idx]) return false;
-		}
-		return (lhs.m_data[0] < rhs.m_data[0]);
-	}
-	
-	if (lhs.m_data.size() > rhs.m_data.size()) return true;
-	if (lhs.m_data.size() < rhs.m_data.size()) return false;
-	for(std::size_t idx = lhs.m_data.size() - 1; idx >= 1; idx--) {
-		if(lhs.m_data[idx] < rhs.m_data[idx]) return false;
-		if(lhs.m_data[idx] > rhs.m_data[idx]) return true;
-	}
-	return (lhs.m_data[0] > rhs.m_data[0]);
-}
-
-inline bool operator<=(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
-	return (lhs<rhs) || (lhs==rhs);
-}
-
-inline bool operator>(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
-	return rhs < lhs;
-}
-
-inline bool operator>=(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
-	return (lhs > rhs) || (lhs == rhs);
+	return std::is_eq(lhs<=>rhs);
 }
 
 inline HumanReadableNum abs(HumanReadableNum const &a) {
 	HumanReadableNum tmp{a};
 	tmp.m_signed = false;
 	return tmp;
+}
+
+inline std::strong_ordering operator<=>(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
+	if(&lhs == &rhs) return std::strong_ordering::equal;
+	if(auto sign = rhs.m_signed <=> lhs.m_signed; sign != 0) return sign;
+	// Positive numbers
+	if(!lhs.m_signed) {
+		if(auto width = lhs.m_data.size() <=> rhs.m_data.size(); width != 0) {
+			return width;
+		}
+		for(std::size_t idx = lhs.m_data.size(); idx > 0; idx--) {
+			if(auto val = lhs.m_data[idx -1] <=> rhs.m_data[idx - 1]; val != 0) {
+				return val;
+			}
+		}
+	} else {
+		if(auto width = rhs.m_data.size() <=> lhs.m_data.size(); width != 0) {
+			return width;
+		}
+		for(std::size_t idx = rhs.m_data.size(); idx > 0; idx--) {
+			if(auto val = rhs.m_data[idx-1] <=> lhs.m_data[idx-1]; val != 0) {
+				return val;
+			}
+		}
+	}
+	return std::strong_ordering::equal;
 }
 
 #endif // HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5

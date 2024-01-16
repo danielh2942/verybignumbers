@@ -54,6 +54,7 @@ TEST_CASE("Verify less than works", "[lt_operator]") {
 	HumanReadableNum tv2{testVals.second};
 	bool expected = testVals.first < testVals.second;
 	bool result = tv1 < tv2;
+	INFO(testVals.first << " < " << testVals.second);
 	INFO("Expected = " << expected << " Result = " << result);
 	CHECK(result == expected);
 }
