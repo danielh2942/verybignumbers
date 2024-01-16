@@ -49,8 +49,7 @@ TEST_CASE("Verify addition works as expected", "[addition]") {
 }
 
 TEST_CASE("Verify less than works", "[lt_operator]") {
-	// Testing the interval [-2,500,000 2,500,000] prevents rollover
-	auto testVals = GENERATE(take(100, pair_random<int>(-2500000,2500000)));
+	auto testVals = GENERATE(take(100, pair_random<int>(INT32_MIN,INT32_MAX)));
 	HumanReadableNum tv1{testVals.first};
 	HumanReadableNum tv2{testVals.second};
 	bool expected = testVals.first < testVals.second;
@@ -58,3 +57,25 @@ TEST_CASE("Verify less than works", "[lt_operator]") {
 	INFO("Expected = " << expected << " Result = " << result);
 	CHECK(result == expected);
 }
+
+TEST_CASE("Verify equality operator works", "[eq_operator]") {
+	auto testVals = GENERATE(take(100, pair_random<int>(INT32_MIN,INT32_MAX)));
+	HumanReadableNum tv1{testVals.first};
+	HumanReadableNum tv2{testVals.second};
+	bool expected = testVals.first == testVals.second;
+	bool result = tv1 == tv2;
+	INFO("Expected = " << expected << " Result = " << result);
+	CHECK(expected == result);
+}
+
+TEST_CASE("Verify Multiplication works", "[multi_operator]") {
+	auto testVals = GENERATE(take(100, pair_random<int>(INT16_MIN, INT16_MAX)));
+	HumanReadableNum tv1{testVals.first};
+	HumanReadableNum tv2{testVals.second};
+	auto expected = testVals.first * testVals.second;
+	auto result = tv1 * tv2;
+	INFO("Testing: " << testVals.first << " * " << testVals.second);
+	INFO("Expected = " << expected << " Result = " << result);
+	CHECK(expected == result);
+}
+
