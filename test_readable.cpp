@@ -48,25 +48,15 @@ TEST_CASE("Verify addition works as expected", "[addition]") {
 	CHECK(result == expected);
 }
 
-TEST_CASE("Verify less than works", "[lt_operator]") {
+TEST_CASE("Verify spaceship operator works", "[spaceship_operator]") {
 	auto testVals = GENERATE(take(100, pair_random<int>(INT32_MIN,INT32_MAX)));
 	HumanReadableNum tv1{testVals.first};
 	HumanReadableNum tv2{testVals.second};
-	bool expected = testVals.first < testVals.second;
-	bool result = tv1 < tv2;
-	INFO(testVals.first << " < " << testVals.second);
-	INFO("Expected = " << expected << " Result = " << result);
+	auto expected = testVals.first <=> testVals.second;
+	auto result = tv1 <=> tv2;
+	INFO(testVals.first << " <=> " << testVals.second);
+	INFO("Expected = " << comparisonString(expected) << " Result = " << comparisonString(result));
 	CHECK(result == expected);
-}
-
-TEST_CASE("Verify equality operator works", "[eq_operator]") {
-	auto testVals = GENERATE(take(100, pair_random<int>(INT32_MIN,INT32_MAX)));
-	HumanReadableNum tv1{testVals.first};
-	HumanReadableNum tv2{testVals.second};
-	bool expected = testVals.first == testVals.second;
-	bool result = tv1 == tv2;
-	INFO("Expected = " << expected << " Result = " << result);
-	CHECK(expected == result);
 }
 
 TEST_CASE("Verify Multiplication works", "[multi_operator]") {

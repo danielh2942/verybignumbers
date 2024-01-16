@@ -5,6 +5,7 @@
  * Copyright: 2023 Daniel Hannon 
  */
 
+#include <compare>
 #include <random>
 #ifndef TEST_HELPERS_H_583EA76E46D841E09555B7A66D76820F
 #define TEST_HELPERS_H_583EA76E46D841E09555B7A66D76820F 1
@@ -44,6 +45,15 @@ Catch::Generators::GeneratorWrapper<std::pair<T, T>> pair_random(T low, T high) 
 	);
 }
 
+inline constexpr std::string_view comparisonString(std::partial_ordering x) {
+	if (x == std::partial_ordering::less)
+		return "Less than";
+	if (x == std::partial_ordering::equivalent)
+		return "Equal to";
+	if (x == std::partial_ordering::greater)
+		return "Greater than";
+	return "Unknown";
+}
 
 #endif // TEST_HELPERS_H_583EA76E46D841E09555B7A66D76820F
 	
