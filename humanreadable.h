@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <compare>
 #include <string_view>
+#include <utility>
 #ifndef HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5
 #define HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5 1
 #include <ostream>
@@ -72,6 +73,13 @@ struct HumanReadableNum {
 		HumanReadableNum a{x};
 		m_data.swap(a.m_data);
 		m_signed = a.m_signed;
+		return *this;
+	}
+
+	// Assign another HumanReadableNum, this works like the copy ctor
+	HumanReadableNum& operator=(HumanReadableNum const& x) {
+		m_data = {x.m_data};
+		m_signed = x.m_signed;
 		return *this;
 	}
 
@@ -232,6 +240,7 @@ struct HumanReadableNum {
 			}
 			for(std::size_t idy = 0; idy < m_data.size(); idy++) {
 				if((idx + idy + 1) >= temp.m_data.size()) temp.m_data.emplace_back('0');
+				// a * b is always single digit so (a * 10) + b does the trick with indexing.
 				auto lutres = sc_multiLUT[((m_data[idy] - '0') * 10) + (val.m_data[idx] - '0')];
 				temp.m_data[idx+idy] = lutres[0];
 				temp.m_data[idx+idy+1] = lutres[1];
@@ -255,12 +264,32 @@ struct HumanReadableNum {
 		return *this;
 	}
 
-private:
-	char subtract_fast(char a, char b, char carry) {
-		a -= '0';
-		b -= '0';
-		return (std::abs(a-b-carry)&0xFF) + '0';
+	HumanReadableNum operator/(HumanReadableNum const& v) const {
+		auto result = simple_divide(v);
+		return result.first;
 	}
+
+	HumanReadableNum& operator/=(HumanReadableNum const& v) {
+		auto result = simple_divide(v);
+		m_data.swap(result.first.m_data);
+		m_signed = result.first.m_signed;
+		return *this;
+	}
+
+	HumanReadableNum operator%(HumanReadableNum const& v) const {
+		auto result = simple_divide(v);
+		result.second.m_signed = m_signed;
+		return result.second;
+	}
+
+	HumanReadableNum& operator%=(HumanReadableNum const& v) {
+		auto result = simple_divide(v);
+		m_data.swap(result.second.m_data);
+		return *this;
+	}
+
+private:
+	std::pair<HumanReadableNum, HumanReadableNum> simple_divide(HumanReadableNum const& div) const;
 
 private:
 	std::vector<char> m_data;	// String digit data, in reverse order
@@ -268,7 +297,7 @@ private:
 
 private:
 	// Lookup table for multiplication.
-	// These are all back to front
+	// These are all written back to front as the numbers are back-to-front internally.
 	static constexpr std::string_view sc_multiLUT[]  = {
 			"00", "00", "00", "00", "00", "00", "00", "00", "00", "00",
 			"00", "10", "20", "30", "40", "50", "60", "70", "80", "90",
@@ -284,12 +313,6 @@ private:
 
 inline bool operator==(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
 	return std::is_eq(lhs<=>rhs);
-}
-
-inline HumanReadableNum abs(HumanReadableNum const &a) {
-	HumanReadableNum tmp{a};
-	tmp.m_signed = false;
-	return tmp;
 }
 
 inline std::strong_ordering operator<=>(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
@@ -316,6 +339,61 @@ inline std::strong_ordering operator<=>(HumanReadableNum const& lhs, HumanReadab
 		}
 	}
 	return std::strong_ordering::equal;
+}
+
+// Placeholder division until I implement decimal places
+// TODO:replace eventually
+inline std::pair<HumanReadableNum, HumanReadableNum> HumanReadableNum::simple_divide(HumanReadableNum const& a) const {
+	std::pair<HumanReadableNum, HumanReadableNum> result{0,0};
+	
+	if(abs(*this) < abs(a)) {
+		result.second = *this;
+		return result;
+	}
+
+	// Divide by zero handler, it just skips the calculation
+	if(a == 0) {
+		return result;
+	}
+
+	std::size_t distance = std::max(m_data.size(), a.m_data.size()) - std::min(m_data.size(), a.m_data.size());
+	
+	HumanReadableNum dividend{0};
+	HumanReadableNum temp{*this};
+	// Exponent hack lmao
+	while(distance != 0) {
+		dividend.m_data.emplace_back('0');
+		distance--;
+	}
+	dividend.m_data.insert(dividend.m_data.end(),a.m_data.begin(),a.m_data.end());
+	// This is important to use subtraction
+	dividend.m_signed = m_signed;
+	while(abs(dividend) >= abs(a)) {
+		result.first *= 10;
+		while(abs(dividend) <= abs(temp)) {
+			temp -= dividend;
+			result.first += 1;
+		}
+		if(dividend.m_data.size() == 1) break;
+		dividend.m_data = {dividend.m_data.begin() + 1, dividend.m_data.end()};
+	} 
+	result.second = temp;
+
+	if(m_signed == a.m_signed) {
+		result.first.m_signed = false;
+		result.second.m_signed = false;
+	} else {
+		result.first.m_signed = true;
+		result.second.m_signed = true;
+	}
+
+	return result;
+}
+
+inline HumanReadableNum abs(HumanReadableNum const &a) {
+	HumanReadableNum tmp{a};
+	tmp.m_signed = false;
+	return tmp;
 }
 
 #endif // HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5

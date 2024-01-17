@@ -70,3 +70,25 @@ TEST_CASE("Verify Multiplication works", "[multi_operator]") {
 	CHECK(expected == result);
 }
 
+TEST_CASE("Verify Division works", "[divide_operator]") {
+	auto testVals = GENERATE(take(100, pair_random<int>(INT16_MIN, INT16_MAX)));
+	HumanReadableNum tv1{testVals.first};
+	HumanReadableNum tv2{testVals.second};
+	auto expected = testVals.first / testVals.second;
+	auto result = tv1 / tv2;
+	INFO("Testing: " << testVals.first << " / " << testVals.second);
+	INFO("Expected = " << expected << " Result = " << result);
+	CHECK(expected == result);
+}
+
+TEST_CASE("Verify Modulo works", "[modulo_operator]") {
+	auto testVals = GENERATE(take(100, pair_random<int>(INT32_MIN, INT32_MAX)));
+	HumanReadableNum tv1{testVals.first};
+	HumanReadableNum tv2{testVals.second};
+	auto expected = testVals.first % testVals.second;
+	auto result = tv1 % tv2;
+	INFO("Testing: " << testVals.first << " % " << testVals.second);
+	INFO("Expected = " << expected << " Result = " << result);
+	CHECK(expected == result);
+}
+
