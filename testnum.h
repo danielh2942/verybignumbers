@@ -13,10 +13,7 @@
 #include <iostream>
 #include <array>
 #include <cstdint>
-#include <iomanip>
-#include <iterator>
 #include <ostream>
-#include <string>
 #include <utility>
 
 #include "helpers.h"
@@ -58,10 +55,7 @@ public:
 
 	friend bool operator==(TestNum const& lhs, TestNum const& rhs);
 	friend bool operator!=(TestNum const& lhs, TestNum const& rhs);
-	friend bool operator<(TestNum const& lhs, TestNum const& rhs);
-	friend bool operator>(TestNum const& lhs, TestNum const& rhs);
-	friend bool operator<=(TestNum const& lhs, TestNum const& rhs);
-	friend bool operator>=(TestNum const& lhs, TestNum const& rhs);
+	friend std::weak_ordering operator<=>(TestNum const& lhs, TestNum const& rhs);
 
 
 // Assignment Operator
@@ -303,53 +297,21 @@ private:
 
 //Equivalance operator
 inline bool operator==(TestNum const& lhs, TestNum const& rhs) {
-	if(&lhs == &rhs) {
-		// Comparing to itself, return itself.
-		return true;
-	}
-	return (lhs.m_data[0] == rhs.m_data[0]) &&
-		   (lhs.m_data[1] == rhs.m_data[1]) &&
-		   (lhs.m_data[2] == rhs.m_data[2]) &&
-		   (lhs.m_data[3] == rhs.m_data[3]);
+	return std::is_eq(lhs <=> rhs);
 }
 
 inline bool operator!=(TestNum const& lhs, TestNum const& rhs) {
 	return !(lhs==rhs);
 }
 
-// Less than operator
-inline bool operator<(TestNum const& lhs, TestNum const& rhs) {
-	// Disgusting comparator logic
-	if(lhs.m_data[3] > rhs.m_data[3]) return false;
-
-	if(lhs.m_data[3] == rhs.m_data[3]) {
-		if(lhs.m_data[2] > rhs.m_data[2]) return false;
-
-		if(lhs.m_data[2] == rhs.m_data[2]) {
-			if(lhs.m_data[1] > rhs.m_data[1]) return false;
-
-			if(lhs.m_data[1] == rhs.m_data[1]) {
-				if(lhs.m_data[0] >= rhs.m_data[0]) return false;
-			}
+inline std::weak_ordering operator<=>(TestNum const& lhs, TestNum const& rhs) {
+	if(&lhs == &rhs) return std::weak_ordering::equivalent;
+	for(auto idx = 4; idx > 0; idx--) {
+		if(auto cmp = lhs.m_data[idx - 1] <=> rhs.m_data[idx - 1]; cmp != 0) {
+			return cmp;
 		}
 	}
-
-	return true;
-}
-
-// Greater Than Operator
-inline bool operator>(TestNum const& lhs, TestNum const& rhs) {
-	return rhs < lhs;
-}
-
-// LEQ
-inline bool operator<=(TestNum const& lhs, TestNum const& rhs) {
-	return (lhs < rhs) || (lhs == rhs);
-}
-
-// GEQ
-inline bool operator>=(TestNum const& lhs, TestNum const& rhs) {
-	return (lhs > rhs) || (lhs == rhs);
+	return std::weak_ordering::equivalent;
 }
 
 inline std::ostream& operator<<(std::ostream & os, TestNum const& v) {
