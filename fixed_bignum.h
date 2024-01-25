@@ -5,6 +5,7 @@
  * Copyright: 2024 Daniel Hannon 
  */
 
+#include <bit>
 #include <compare>
 #ifndef FIXED_BIGNUM_H_48E15CF0647345CD87782509952C8E4E
 #define FIXED_BIGNUM_H_48E15CF0647345CD87782509952C8E4E 1
@@ -191,6 +192,30 @@ struct FixedBigNum {
 		return *this;
 	}
 
+	constexpr FixedBigNum& operator/=(FixedBigNum const& div) {
+		auto tmp = simple_divide(div);
+		m_data.swap(tmp.first.m_data);
+		m_signed = tmp.first.m_signed;
+		return *this;
+	}
+
+	constexpr FixedBigNum operator/(FixedBigNum const& div) const {
+		auto tmp = simple_divide(div);
+		return tmp.first;
+	}
+
+	constexpr FixedBigNum& operator%=(FixedBigNum const& div) {
+		auto tmp = simple_divide(div);
+		m_data.swap(tmp.second.m_data);
+		m_signed = tmp.second.m_signed;
+		return *this;
+	}
+
+	constexpr FixedBigNum operator%(FixedBigNum const& div) const {
+		auto tmp = simple_divide(div);
+		return tmp.second;
+	}
+
 // Bitshift operators
 	constexpr FixedBigNum& operator<<=(std::size_t const& val) {
 		auto word_offset = val >> 5;
@@ -291,6 +316,49 @@ struct FixedBigNum {
 			v = ~v;
 		}
 		return temp;
+	}
+
+private:
+	constexpr std::size_t get_most_populated() const {
+		for(std::size_t idx = U - 1; idx > 0; idx--) {
+			if(m_data[idx]) return idx;
+		}
+		return 0;
+	}
+
+	// TODO:Test This!!!!!!!!!
+	constexpr std::pair<FixedBigNum,FixedBigNum> simple_divide(FixedBigNum const& div) const {
+		if((*this == 0) || (div == 0)) {
+			return {0,0};
+		}
+		std::pair<FixedBigNum,FixedBigNum> result {0,*this};
+
+		std::size_t len_divisor = div.get_most_populated();
+		std::size_t len_dividend = get_most_populated();
+
+		if(len_divisor > len_dividend) {
+			return result;
+		}
+
+		int dividend_pop_bits = (32 - std::countl_zero(m_data[len_dividend])) + (len_dividend * 32);
+		int divisor_pop_bits = (32 - std::countl_zero(m_data[len_divisor])) + (len_divisor * 32);
+
+		int operations = dividend_pop_bits - divisor_pop_bits;
+
+		if(operations < 0) return result;
+
+		FixedBigNum divisor = div << operations;
+		while((abs(divisor) >= abs(div)) && (operations >= 0)) {
+			result.first <<= 1;
+			if(result.second >= divisor) {
+				result.second -= divisor;
+				result.first++;
+			}
+			divisor >>= 1;
+			operations--;
+		} 
+
+		return result;
 	}
 
 private:

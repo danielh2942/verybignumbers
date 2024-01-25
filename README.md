@@ -26,3 +26,4 @@ $ cmake -G "Ninja" ../
 - [] Non-statically sized type
 - [] Statically sized (But templated) numerical type
 - [] Floating Point type
+- [] Investigate whether or not AVX is practical
