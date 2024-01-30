@@ -20,6 +20,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <iostream>
+
 /*
  * Fixed-size big number type, it does everything you'd expect.
  * this type does not utilize disk storage and is used to do
@@ -73,17 +75,17 @@ struct FixedBigNum {
 // Comparators
 
 	constexpr std::partial_ordering operator<=>(FixedBigNum const& vs) const {
-		if(auto signs = m_signed <=> vs.m_signed; signs != 0) {
+		if(auto signs = vs.m_signed <=> m_signed; signs != 0) {
 			return signs;
 		}
 
 		if(!m_signed) {
 			for(auto idx = U; idx > 0; idx--) {
-				if(auto res = vs.m_data[idx - 1] <=> m_data[idx - 1]; res != 0) return res;
+				if(auto res = m_data[idx - 1] <=> vs.m_data[idx - 1]; res != 0) return res;
 			} 
 		} else {
 			for(auto idx = U; idx > 0; idx--) {
-				if(auto res = m_data[idx - 1] <=> vs.m_data[idx - 1]; res != 0) return res;
+				if(auto res = vs.m_data[idx - 1] <=> m_data[idx - 1]; res != 0) return res;
 			}
 		}
 		return std::partial_ordering::equivalent;
@@ -142,6 +144,7 @@ struct FixedBigNum {
 		}
 
 		if(abs(*this) < abs(sub)) {
+			std::cout << "Fuck" << std::endl;
 			FixedBigNum temp = sub - *this;
 			m_data.swap(temp.m_data);
 			m_signed ^= true;
