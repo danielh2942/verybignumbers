@@ -12,6 +12,8 @@ add_executable(test_coldstorage_uuid test_coldstorage_uuid.cpp)
 
 add_executable(test_coldvector test_coldvector.cpp)
 
+add_executable(test_fixed_bignum test_fixed_bignum.cpp)
+
 add_library(ColdStorage STATIC coldstorage.cpp)
 
 add_library(MyUtils STATIC util.cpp)
@@ -31,6 +33,7 @@ target_link_libraries(ColdStorage PRIVATE uuid_v4::uuid_v4)
 target_link_libraries(MyUtils PRIVATE uuid_v4::uuid_v4)
 target_link_libraries(test_coldstorage_uuid PRIVATE ColdStorage)
 target_link_libraries(test_coldvector PRIVATE Catch2::Catch2WithMain MyUtils)
+target_link_libraries(test_fixed_bignum PRIVATE Catch2::Catch2WithMain)
 
 include(CTest)
 

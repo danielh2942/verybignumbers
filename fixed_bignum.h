@@ -5,6 +5,9 @@
  * Copyright: 2024 Daniel Hannon 
  */
 
+#include "humanreadable.h"
+#include <ostream>
+
 #include <bit>
 #include <compare>
 #ifndef FIXED_BIGNUM_H_48E15CF0647345CD87782509952C8E4E
@@ -37,8 +40,8 @@ struct FixedBigNum {
 		}
 		std::size_t idx = 0;
 		while(x > 0) {
-			m_data[idx] = x % (INT32_MAX + 1);
-			x /= (INT32_MAX + 1);
+			m_data[idx] = x % ((std::uint64_t)UINT32_MAX + 1);
+			x /= ((std::uint64_t)UINT32_MAX + 1);
 			idx++;
 		}
 	}
@@ -47,8 +50,8 @@ struct FixedBigNum {
 	{
 		std::size_t idx = 0;
 		while(x > 0) {
-			m_data[idx] = x % (INT32_MAX + 1);
-			x /= (INT32_MAX + 1);
+			m_data[idx] = x % ((std::uint64_t)UINT32_MAX + 1);
+			x /= ((std::uint64_t)UINT32_MAX + 1);
 			idx++;
 		}
 	}
@@ -75,10 +78,15 @@ struct FixedBigNum {
 		}
 
 		if(!m_signed) {
-			return vs.m_data <=> m_data;
+			for(auto idx = U; idx > 0; idx--) {
+				if(auto res = vs.m_data[idx - 1] <=> m_data[idx - 1]; res != 0) return res;
+			} 
 		} else {
-			return m_data <=> vs.m_data;
+			for(auto idx = U; idx > 0; idx--) {
+				if(auto res = m_data[idx - 1] <=> vs.m_data[idx - 1]; res != 0) return res;
+			}
 		}
+		return std::partial_ordering::equivalent;
 	}
 
 	constexpr bool operator==(FixedBigNum const& cmp) const {
@@ -96,7 +104,7 @@ struct FixedBigNum {
 		
 		std::uint64_t carry = 0U;
 		for(std::size_t idx = 0; idx < U; idx++) {
-			carry += (m_data[idx] & 0xFFFFFFFF)	+ (add.m_data[idx] & 0xFFFFFFFF);
+			carry += ((std::uint64_t)(m_data[idx] & 0xFFFFFFFF)) + (std::uint64_t)(add.m_data[idx] & 0xFFFFFFFF);
 			m_data[idx] = carry & 0xFFFFFFFF;
 			carry >>= 32;
 		}
@@ -110,6 +118,11 @@ struct FixedBigNum {
 	}
 
 	constexpr FixedBigNum& operator++() {
+		*this += 1;
+		return *this;
+	}
+
+	constexpr FixedBigNum& operator++(int) {
 		*this += 1;
 		return *this;
 	}
@@ -136,13 +149,14 @@ struct FixedBigNum {
 		}
 
 		std::uint64_t buff = 0;
+		std::uint64_t tmp = 0;
 		bool all_zeroes = true;
 		for(auto idx = 0; idx < U; idx++) {
-			buff = (m_data[idx]&0xFFFFFFFF) - (buff & 0x1);
-			buff -= (sub.m_data[idx] & 0xFFFFFFFF);
+			tmp = m_data[idx] & 0xFFFFFFFF;
+			buff = tmp - (sub.m_data[idx]&0xFFFFFFFF) - buff;
 			m_data[idx] = buff & 0xFFFFFFFF;
-			all_zeroes &= (m_data[idx] == 0);
-			buff >>= 32;
+			all_zeroes &= (buff == 0);
+			buff = (buff > tmp);
 		}
 
 		if(all_zeroes) {
@@ -318,6 +332,40 @@ struct FixedBigNum {
 		return temp;
 	}
 
+	friend std::ostream & operator<<(std::ostream & os, FixedBigNum const& bigNum) {
+		if constexpr(U == 1) {
+			if(bigNum.m_signed) {
+				os << '-';
+			}
+			os << bigNum.m_data[0];
+		} else if constexpr(U == 2) {
+			if(bigNum.m_signed) {
+				os << '-';
+			}
+			std::uint64_t val = (bigNum.m_data[0] & 0xFFFFFFFF) ^ ((std::uint64_t)(bigNum.m_data[1] & 0xFFFFFFFF) << 32);
+			os << val;
+		} else {
+			// TODO:Optimise
+			HumanReadableNum tmp{};
+			auto temp = bigNum.simple_divide(UINT32_MAX);
+			while(temp.first != 0) {
+				tmp *= UINT32_MAX;
+				tmp += temp.second.m_data[0];
+				temp = temp.first.simple_divide(UINT32_MAX);
+			}
+			tmp *= UINT32_MAX;
+			tmp += temp.second.m_data[0];
+			os << tmp;
+		}
+		return os;
+	}
+
+	friend FixedBigNum abs(FixedBigNum const& num) {
+		FixedBigNum tmp{num};
+		tmp.m_signed = false;
+		return tmp;
+	}
+
 private:
 	constexpr std::size_t get_most_populated() const {
 		for(std::size_t idx = U - 1; idx > 0; idx--) {
@@ -365,13 +413,6 @@ private:
 	std::array<std::uint32_t, U> m_data;   // The number data itself
 	bool						 m_signed; // The sign for the number
 };
-
-template<size_t U>
-FixedBigNum<U> abs(FixedBigNum<U> const& num) {
-	FixedBigNum<U> temp{num};
-	temp.m_signed = false;
-	return temp;
-}
 
 using int1024 = FixedBigNum<32>;
 
