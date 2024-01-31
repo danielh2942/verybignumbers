@@ -36,9 +36,10 @@ target_link_libraries(test_coldvector PRIVATE Catch2::Catch2WithMain MyUtils)
 target_link_libraries(test_fixed_bignum PRIVATE Catch2::Catch2WithMain)
 
 include(CTest)
+include(cmake/Catch.cmake)
 
-enable_testing()
-add_test(NAME VeryBigNums.ProofOfConcept COMMAND test_poc)
-add_test(NAME VeryBigNums.Readable COMMAND test_readable)
-add_test(NAME VeryBigNums.ColdVector COMMAND test_coldvector)
+catch_discover_tests(test_poc)
+catch_discover_tests(test_readable)
+catch_discover_tests(test_coldvector)
+catch_discover_tests(test_fixed_bignum)
 
