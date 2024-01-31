@@ -237,22 +237,35 @@ struct FixedBigNum {
 	constexpr FixedBigNum& operator<<=(std::size_t const& val) {
 		auto word_offset = val >> 5;
 		auto bit_offset = val & 0x1F;
-
+		if(val == 0) return *this;
 		std::uint64_t buff;
 
 		/* Start with most significant shift right and work backwards
 		 */
-		if constexpr(U < 2) {
-			static_assert(false, "TODO: support for U < 2");
-		}
-		for(std::size_t idx = U - 2; idx > word_offset; idx--) {
-			buff = (m_data[idx - word_offset] & 0xFFFFFFFF) << bit_offset;
-			buff ^= (m_data[idx - word_offset - 1] & 0xFFFFFFFF) >> (32 - bit_offset);
-			m_data[idx] = buff & 0xFFFFFFFF;
-		}
+		if constexpr(U == 1) {
+			if(word_offset > 0) m_data[0] = 0;
+			m_data[0] <<= bit_offset;
+		} else if constexpr(U == 2) {
+			if(word_offset == 1) {
+				m_data[1] = m_data[0] << bit_offset;
+				m_data[0] = 0;
+			} else if(word_offset >= 2) {
+				m_data[0] = 0;
+				m_data[1] = 0;
+			} else {
+				m_data[1] = (m_data[1] << bit_offset) ^ (m_data[0] >> (32 - bit_offset));
+				m_data[0] = m_data[0] << bit_offset;
+			}
+		} else {
+			for(int idx = U - 2; idx > word_offset; idx--) {
+				buff = (m_data[idx - word_offset] & 0xFFFFFFFF) << bit_offset;
+				buff ^= (m_data[(idx - 1) - word_offset] & 0xFFFFFFFF) >> (32 - bit_offset);
+				m_data[idx] = buff & 0xFFFFFFFF;
+			}
 
-		for(std::size_t idx = 0; idx < word_offset; idx++) {
-			m_data[idx] = 0;
+			for(std::size_t idx = 0; idx < word_offset; idx++) {
+				m_data[idx] = 0;
+			}
 		}
 
 		return *this;
@@ -272,11 +285,16 @@ struct FixedBigNum {
 				v = 0;
 			}
 		}
+
 		std::uint64_t buff = m_data[word_offset+1];
 		for(auto idx = 0; (idx + word_offset) < U; idx++) {
 			buff <<= (32-bit_offset);
 			buff ^= m_data[idx + word_offset] >> bit_offset;
-			m_data[idx] = buff;
+			m_data[idx] = buff & 0xFFFFFFFF;
+		}
+
+		for(auto idx = U - word_offset; idx < U; idx++) {
+			m_data[idx] = 0;
 		}
 
 		return *this;
