@@ -5,12 +5,14 @@
  * Copyright: 2024 Daniel Hannon 
  */
 
+#ifndef HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5
+#define HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5 1
+#include "cold_vector.h"
+
 #include <algorithm>
 #include <compare>
 #include <string_view>
 #include <utility>
-#ifndef HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5
-#define HUMANREADABLE_H_2ADA56A63CC34EC5B844EF7F7C7178B5 1
 #include <ostream>
 #include <vector>
 #include <cmath>
@@ -292,7 +294,7 @@ private:
 	std::pair<HumanReadableNum, HumanReadableNum> simple_divide(HumanReadableNum const& div) const;
 
 private:
-	std::vector<char> m_data;	// String digit data, in reverse order
+	ColdVector<char> m_data;	// String digit data, in reverse order
 	bool			  m_signed; // If the number is signed and whatever
 
 private:

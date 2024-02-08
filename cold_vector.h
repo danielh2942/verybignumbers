@@ -11,10 +11,12 @@
 
 #include <algorithm>
 #include <array>
+#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
+#include <initializer_list>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -29,7 +31,7 @@
  */
 template<typename T, std::size_t BUFF_SIZE = 100>
 struct ColdVector {
-	ColdVector(): m_buffer{},
+	ColdVector(std::initializer_list<T> inp): m_buffer{},
 				  m_buffIndex{0},
 				  m_buffSize{0},
 				  m_vectorSize{0},
@@ -38,6 +40,9 @@ struct ColdVector {
 				  m_fileStream{m_fileName, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc}
 	{
 		static_assert(BUFF_SIZE != 0, "Cannot have 0 buffer");
+		for(auto const& v : inp) {
+			emplace_back(v);
+		}
 	}
 
 	ColdVector(ColdVector const& other): m_buffer{other.m_buffer},
@@ -77,6 +82,14 @@ struct ColdVector {
 		if(m_fileOwner) {
 			std::remove(m_fileName.c_str());
 		}
+	}
+
+	ColdVector& operator=(ColdVector const& other) {
+		if(this != &other) {
+			auto val = ColdVector{other};
+			swap(val);
+		}
+		return *this;
 	}
 
 	// Amount of elements currently stored in the vector
@@ -134,6 +147,24 @@ struct ColdVector {
 		return m_buffer[idx - m_buffIndex];
 	}
 
+	T const operator[](std::size_t idx) const {
+		if((idx >= m_buffIndex) && (idx <= (m_buffIndex + m_buffSize))) {
+			return m_buffer[idx - m_buffIndex];
+		} else {
+			return peekAt(idx);
+		}
+	}
+
+	void swap(ColdVector & other) noexcept {
+		std::swap(m_buffer,other.m_buffer);
+		std::swap(m_buffIndex, other.m_buffIndex);
+		std::swap(m_buffSize,other.m_buffSize);
+		std::swap(m_vectorSize, other.m_vectorSize);
+		std::swap(m_fileName, other.m_fileName);
+		std::swap(m_fileOwner, other.m_fileOwner);
+		std::swap(m_fileStream, other.m_fileStream);
+	}
+
 	class iterator {
 		public:
 			using value_type = T;
@@ -142,22 +173,13 @@ struct ColdVector {
 			using reference = T&;
 			using iterator_category = std::random_access_iterator_tag;
 
-			iterator(): m_internal{nullptr},
-						m_idx{0}
+			iterator(ColdVector const* pVec): m_internal{pVec},
+										      m_idx{0}
 			{}
 
-			iterator(ColdVector* pVec): m_internal{pVec},
-										m_idx{0}
-			{}
-
-			iterator(iterator const& itr): m_internal{itr.pVec},
+			iterator(iterator const& itr): m_internal{itr.m_internal},
 										   m_idx{itr.m_idx}
 			{}
-
-			~iterator()
-			{
-				m_internal = nullptr;
-			}
 
 			iterator& operator++(int) {
 				m_idx++;
@@ -169,7 +191,29 @@ struct ColdVector {
 				return *this;
 			}
 
-			reference operator*() {
+			iterator operator+(std::size_t val) {
+				auto tmp{*this};
+				tmp.m_idx += val;
+				return tmp;
+			}
+
+			iterator operator-(std::size_t val) {
+				auto tmp{*this};
+				tmp.m_idx -= val;
+				return tmp;
+			}
+			
+			iterator& operator--(int) {
+				m_idx--;
+				return *this;
+			}
+
+			iterator& operator--() {
+				m_idx--;
+				return *this;
+			}
+
+			T const operator*() const {
 				return m_internal->operator[](m_idx);
 			}
 
@@ -185,18 +229,63 @@ struct ColdVector {
 
 			bool operator==(iterator const& rhs) const {return (m_idx == rhs.m_idx) && (m_internal == rhs.m_internal);}
 			bool operator!=(iterator const& rhs) const {return !(*this == rhs);}
+			
+			std::weak_ordering operator<=>(iterator const& rhs) {
+				if(m_internal != rhs.m_internal) return std::weak_ordering::greater;
+				return m_idx <=> rhs.m_idx;
+			}
+
+		std::int64_t get_index() const {
+			return m_idx;
+		}
 
 		private:
-			ColdVector* m_internal;
-			std::size_t m_idx;
+			ColdVector const* m_internal;
+			std::int64_t m_idx;
 	};
 
-	iterator begin() { return iterator{this}; }
+	iterator begin() const { return iterator{this}; }
 
-	iterator end() {
+	iterator end() const {
 		auto tmp = iterator{this};
 		tmp = tmp + m_vectorSize;
 		return tmp;
+	}
+
+	iterator rbegin() const {
+		return end() - 1;
+	}
+
+	iterator rend() const {
+		return begin() - 1;
+	}
+
+	ColdVector(iterator const& begin,
+			   iterator const& end) : m_buffer{},
+		                              m_buffIndex{0},
+									  m_buffSize{0},
+									  m_vectorSize{0},
+									  m_fileName{get_uuid()},
+									  m_fileOwner{true},
+									  m_fileStream{m_fileName, std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc}
+	{
+		for(auto it = begin; it < end; it++) {
+			emplace_back(*it);
+		}
+	}
+
+	void insert(iterator const& at, iterator const& begin, iterator const& end) {
+		auto insertedData = begin;
+		auto atPosition = at.get_index();
+		while(insertedData != end) {
+			if(atPosition == m_vectorSize) {
+				emplace_back(*insertedData);
+			} else {
+				this->operator[](atPosition) = *insertedData;
+			}
+			atPosition++;
+			insertedData++;
+		}
 	}
 
 private:
@@ -219,6 +308,18 @@ private:
 		m_fileStream.read(reinterpret_cast<char*>(&m_buffer), std::min(BUFF_SIZE, m_vectorSize) * sizeof(T));
 		m_buffIndex = idx;
 		m_buffSize = std::min((m_vectorSize - idx),BUFF_SIZE);
+	}
+
+	// Horrible hack job
+	T const peekAt(std::size_t idx) const {
+		if(m_buffSize == 0) return T{};
+		std::ifstream tmp{m_fileName};
+		if(!tmp.is_open()) return T{};
+		tmp.seekg(idx * sizeof(T), std::ios::beg);
+		T out{};
+		tmp.read(reinterpret_cast<char*>(&out), sizeof(T));
+		tmp.close();
+		return out;
 	}
 
 private:
