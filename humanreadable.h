@@ -57,7 +57,7 @@ struct HumanReadableNum {
 		if(hrn.m_signed) {
 			os << '-';
 		}
-		for(auto it = hrn.m_data.rbegin(); it != hrn.m_data.rend(); it++) {
+		for(auto it = hrn.m_data.end() -1; it != hrn.m_data.begin() - 1; it--) {
 			os << *it;
 		}
 		return os;	

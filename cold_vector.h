@@ -252,14 +252,6 @@ struct ColdVector {
 		return tmp;
 	}
 
-	iterator rbegin() const {
-		return end() - 1;
-	}
-
-	iterator rend() const {
-		return begin() - 1;
-	}
-
 	ColdVector(iterator const& begin,
 			   iterator const& end) : m_buffer{},
 		                              m_buffIndex{0},
