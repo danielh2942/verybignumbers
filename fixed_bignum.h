@@ -280,21 +280,32 @@ struct FixedBigNum {
 	constexpr FixedBigNum& operator>>=(std::size_t const& val) {
 		auto word_offset = val >> 5;
 		auto bit_offset = val & 0x1F;
+		if(val == 0) return *this;
 		if(word_offset >= U) {
 			for(auto& v: m_data) {
 				v = 0;
 			}
+			return *this;
 		}
 
-		std::uint64_t buff = m_data[word_offset+1];
-		for(auto idx = 0; (idx + word_offset) < U; idx++) {
-			buff <<= (32-bit_offset);
-			buff ^= m_data[idx + word_offset] >> bit_offset;
-			m_data[idx] = buff & 0xFFFFFFFF;
-		}
+		if constexpr(U == 1) {
+			m_data[0] = m_data[0] >> bit_offset;
+		} else if constexpr(U == 2){
+			std::uint64_t temp = (((std::uint64_t)m_data[1]) << 32) ^ m_data[0];
+			temp >>= val;
+			m_data[0] = temp & 0xFFFFFFFF;
+			m_data[1] = (temp >> 32) & 0xFFFFFFFF;
+		} else {
+			std::uint64_t buff = m_data[word_offset+1];
+			for(auto idx = 0; (idx + word_offset) < U; idx++) {
+				buff <<= (32-bit_offset);
+				buff ^= m_data[idx + word_offset] >> bit_offset;
+				m_data[idx] = buff & 0xFFFFFFFF;
+			}
 
-		for(auto idx = U - word_offset; idx < U; idx++) {
-			m_data[idx] = 0;
+			for(auto idx = U - word_offset; idx < U; idx++) {
+				m_data[idx] = 0;
+			}
 		}
 
 		return *this;
@@ -410,9 +421,9 @@ private:
 		}
 
 		int dividend_pop_bits = (32 - std::countl_zero(m_data[len_dividend])) + (len_dividend * 32);
-		int divisor_pop_bits = (32 - std::countl_zero(m_data[len_divisor])) + (len_divisor * 32);
+		int divisor_pop_bits = (32 - std::countl_zero(div.m_data[len_divisor])) + (len_divisor * 32);
 
-		int operations = dividend_pop_bits - divisor_pop_bits;
+		int operations = (dividend_pop_bits - divisor_pop_bits);
 
 		if(operations < 0) return result;
 

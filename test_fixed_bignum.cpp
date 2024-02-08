@@ -60,18 +60,6 @@ TEST_CASE("Check FixedBigNum spaceship operator works as expected", "[fixbig_spa
 	CHECK(expected == result);
 }
 
-TEST_CASE("Check FixedBigNum division operator works as expected", "[fixbig_div]") {
-	auto testVals = GENERATE(take(1000, pair_random<std::uint64_t>(1U, UINT64_MAX)));
-	std::uint64_t a = std::max(testVals.first,testVals.second);
-	std::uint64_t b = std::min(testVals.first, testVals.second);
-	std::uint64_t expected = a / b;
-	TestFixed tv1{a};
-	TestFixed tv2{b};
-	auto result = tv1 / tv2;
-	INFO("a = " << a << " b = " << b);
-	CHECK(result == expected);
-}
-
 TEST_CASE("Check FixedBigNum bitshift left works as expected", "[fixbig_leftshift]") {
 	auto testVals = GENERATE(take(1000, pair_random<std::uint64_t>(0U,UINT64_MAX)));
 	std::uint64_t a = testVals.first;
@@ -92,5 +80,29 @@ TEST_CASE("Check FixedBigNum bitshift right works as expected", "[fixbig_rightsh
 	auto result = tv1 >> displacement;
 	INFO("a = " << a << " Offset = " << displacement);
 	CHECK(result == res);
+}
+
+TEST_CASE("Check FixedBigNum division operator works as expected", "[fixbig_div]") {
+	auto testVals = GENERATE(take(1000, pair_random<std::int64_t>(INT64_MIN, INT64_MAX)));
+	std::uint64_t a = std::max(testVals.first,testVals.second);
+	std::uint64_t b = std::min(testVals.first, testVals.second);
+	std::uint64_t expected = a / b;
+	TestFixed tv1{a};
+	TestFixed tv2{b};
+	auto result = tv1 / tv2;
+	INFO("a = " << a << " b = " << b);
+	CHECK(result == expected);
+}
+
+TEST_CASE("Check FixedBigNum modulo operator works as expected", "[fixbig_mod]") {
+	auto testVals = GENERATE(take(1000, pair_random<std::int64_t>(INT64_MIN, INT64_MAX)));
+	std::uint64_t a = std::max(testVals.first,testVals.second);
+	std::uint64_t b = std::min(testVals.first, testVals.second);
+	std::uint64_t expected = a % b;
+	TestFixed tv1{a};
+	TestFixed tv2{b};
+	auto result = tv1 % tv2;
+	INFO("a = " << a << " b = " << b);
+	CHECK(result == expected);
 }
 
