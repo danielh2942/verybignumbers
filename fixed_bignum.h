@@ -365,6 +365,8 @@ struct FixedBigNum {
 	}
 
 	friend std::ostream & operator<<(std::ostream & os, FixedBigNum const& bigNum) {
+		const HumanReadableNum HrU32MaxAdd1{0x100000000};
+
 		if constexpr(U == 1) {
 			if(bigNum.m_signed) {
 				os << '-';
@@ -377,16 +379,14 @@ struct FixedBigNum {
 			std::uint64_t val = (bigNum.m_data[0] & 0xFFFFFFFF) ^ ((std::uint64_t)(bigNum.m_data[1] & 0xFFFFFFFF) << 32);
 			os << val;
 		} else {
-			// TODO:Optimise
-			HumanReadableNum tmp{};
-			auto temp = bigNum.simple_divide(UINT32_MAX);
-			while(temp.first != 0) {
-				tmp *= UINT32_MAX;
-				tmp += temp.second.m_data[0];
-				temp = temp.first.simple_divide(UINT32_MAX);
+			HumanReadableNum tmp{0};
+			for(auto idx = U; idx > 0; idx--) {
+				tmp *= HrU32MaxAdd1;
+				tmp += bigNum.m_data[idx - 1];
 			}
-			tmp *= UINT32_MAX;
-			tmp += temp.second.m_data[0];
+			if(bigNum.m_signed) {
+				os << '-';
+			}
 			os << tmp;
 		}
 		return os;
