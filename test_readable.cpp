@@ -35,6 +35,18 @@ TEST_CASE("Verify subtraction works as expected", "[subtraction]") {
 	CHECK(result == expected);
 }
 
+TEST_CASE("Verify AddEquals operation works as expected", "[hr_addeq]") {
+	// Testing the interval [-2,500,000 2,500,000] prevents rollover
+	auto testVals = GENERATE(take(100, pair_random<int>(-2500000,2500000)));
+	HumanReadableNum result{testVals.first};
+	HumanReadableNum tv2{testVals.second};
+	int expected = testVals.first + testVals.second;
+	result += tv2;
+	INFO("Testing: " << testVals.first << " += " << testVals.second);
+	INFO("Expected = " << expected << " Result = " << result);
+	CHECK(result == expected);
+}
+
 TEST_CASE("Verify addition works as expected", "[addition]") {
 	// Testing the interval [-2,500,000 2,500,000] prevents rollover
 	auto testVals = GENERATE(take(100, pair_random<int>(-2500000,2500000)));

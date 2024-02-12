@@ -59,3 +59,35 @@ TEST_CASE("Test Modification and access", "[coldvec_randaccess]") {
 	}
 }
 
+TEST_CASE("Test Iterator works", "[coldvec_iterator]") {
+	ColdVector<int> a{1,2,3,4,5,6,7,8,9,10};
+	CHECK(a.size() == 10);
+	std::size_t idx = 0;
+	for(auto const& v : a) {
+		CHECK(v == a[idx++]);
+	}
+}
+
+TEST_CASE("Test Copy Ctor works as expected", "[coldvec_copyctor]") {
+	ColdVector<int> a{1,2,3,4,5,6,7,8,9,10};
+	ColdVector<int> b{a};
+	for(std::size_t idx = 0; idx < a.size(); idx++) {
+		CHECK(a[idx] == b[idx]);
+	}
+
+	b[2] = 4;
+	CHECK(a[2] != b[2]);
+}
+
+TEST_CASE("Test Insert operator works as expected", "[coldvec_insert]") {
+	ColdVector<int> a{1,2,3,4,5};
+	ColdVector<int> b{6,7,8,9,10};
+
+	a.insert(a.end(),b.begin(),b.end());
+	CHECK(a.size() == 10);
+	int val = 1;
+	for(auto const& v : a) {
+		CHECK(v == val++);
+	}
+}
+

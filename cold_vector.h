@@ -48,7 +48,7 @@ struct ColdVector {
 	ColdVector(ColdVector const& other): m_buffer{other.m_buffer},
 										 m_buffIndex{other.m_buffIndex},
 										 m_buffSize{other.m_buffSize},
-										 m_vectorSize{0},
+										 m_vectorSize{other.m_vectorSize},
 										 m_fileName{get_uuid()},
 										 m_fileOwner{true},
 										 m_fileStream{m_fileName, std::ios::in | std::ios::out | std::ios::binary}
@@ -147,11 +147,9 @@ struct ColdVector {
 		return m_buffer[idx - m_buffIndex];
 	}
 
-	T operator[](std::size_t idx) const {
-		if((idx >= m_buffIndex) && (idx < (m_buffIndex + m_buffSize))) {
-			return m_buffer[idx - m_buffIndex];
-		}
-		return peekAt(idx);
+	T& operator[](std::size_t idx) const {
+		// I can't make this truly const :DDDDD
+		return const_cast<ColdVector *>(this)->operator[](idx);	
 	}
 
 	void swap(ColdVector & other) noexcept {
@@ -346,18 +344,6 @@ private:
 		m_fileStream.read(reinterpret_cast<char*>(&m_buffer), std::min(BUFF_SIZE, m_vectorSize) * sizeof(T));
 		m_buffIndex = idx;
 		m_buffSize = std::min((m_vectorSize - idx),BUFF_SIZE);
-	}
-
-	// Horrible hack job
-	T const peekAt(std::size_t idx) const {
-		if(m_buffSize == 0) return T{};
-		std::ifstream tmp{m_fileName};
-		if(!tmp.is_open()) return T{};
-		tmp.seekg(idx * sizeof(T), std::ios::beg);
-		T out{};
-		tmp.read(reinterpret_cast<char*>(&out), sizeof(T));
-		tmp.close();
-		return out;
 	}
 
 private:
