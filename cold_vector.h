@@ -124,7 +124,8 @@ struct ColdVector {
 
 	template<class... Args>
 	void emplace_back(Args&&... args) {
-		if(m_vectorSize >= (m_buffIndex + BUFF_SIZE)) {
+		if((m_vectorSize < m_buffIndex)
+			|| (m_vectorSize >= (m_buffIndex + BUFF_SIZE))) {
 			dump_buffer();
 			load_buffer_at(m_vectorSize);
 		}
@@ -341,7 +342,7 @@ private:
 			return;
 		}
 		m_fileStream.seekg(idx * sizeof(T), std::ios::beg);
-		m_fileStream.read(reinterpret_cast<char*>(&m_buffer), std::min(BUFF_SIZE, m_vectorSize) * sizeof(T));
+		m_fileStream.read(reinterpret_cast<char*>(&m_buffer), std::min(BUFF_SIZE, (m_vectorSize - idx)) * sizeof(T));
 		m_buffIndex = idx;
 		m_buffSize = std::min((m_vectorSize - idx),BUFF_SIZE);
 	}

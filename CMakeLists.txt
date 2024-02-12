@@ -14,9 +14,14 @@ add_executable(test_coldvector test_coldvector.cpp)
 
 add_executable(test_fixed_bignum test_fixed_bignum.cpp)
 
+add_executable(factorialtest main.cpp)
+
 add_library(ColdStorage STATIC coldstorage.cpp)
 
 add_library(MyUtils STATIC util.cpp)
+
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+# set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
 
 include(cmake/CPM.cmake)
 CPMAddPackage("gh:catchorg/Catch2@3.5.2")
@@ -34,6 +39,7 @@ target_link_libraries(MyUtils PRIVATE uuid_v4::uuid_v4)
 target_link_libraries(test_coldstorage_uuid PRIVATE ColdStorage)
 target_link_libraries(test_coldvector PRIVATE Catch2::Catch2WithMain MyUtils)
 target_link_libraries(test_fixed_bignum PRIVATE Catch2::Catch2WithMain MyUtils)
+target_link_libraries(factorialtest PRIVATE MyUtils)
 
 include(CTest)
 include(cmake/Catch.cmake)

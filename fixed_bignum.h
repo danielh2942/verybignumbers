@@ -180,6 +180,11 @@ struct FixedBigNum {
 		return *this;
 	}
 
+	constexpr FixedBigNum& operator--(int) {
+		*this -= 1;
+		return *this;
+	}
+
 	constexpr FixedBigNum operator*(FixedBigNum const& mult) const {
 		// TODO:Replace with karatsuba
 		FixedBigNum temp{0};

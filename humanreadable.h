@@ -23,7 +23,6 @@
  * HUMAN READABLE NUMBER
  * basically, this is a base-10 number type that should only be used when printing numbers
  *
- * TODO:Make it store the number data in a **FILE** as this will grow RAPIDLY!
  * TODO:Make the number support decimal places
  *
  */
