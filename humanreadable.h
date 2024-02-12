@@ -57,7 +57,7 @@ struct HumanReadableNum {
 		if(hrn.m_signed) {
 			os << '-';
 		}
-		for(auto it = hrn.m_data.end() -1; it != hrn.m_data.begin() - 1; it--) {
+		for(auto it = hrn.m_data.rbegin(); it != hrn.m_data.rend(); it++) {
 			os << *it;
 		}
 		return os;	
@@ -295,7 +295,7 @@ private:
 
 private:
 	ColdVector<char> m_data;	// String digit data, in reverse order
-	bool			  m_signed; // If the number is signed and whatever
+	bool			 m_signed; // If the number is signed and whatever
 
 private:
 	// Lookup table for multiplication.

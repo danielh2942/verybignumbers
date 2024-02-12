@@ -147,12 +147,11 @@ struct ColdVector {
 		return m_buffer[idx - m_buffIndex];
 	}
 
-	T const operator[](std::size_t idx) const {
-		if((idx >= m_buffIndex) && (idx <= (m_buffIndex + m_buffSize))) {
+	T operator[](std::size_t idx) const {
+		if((idx >= m_buffIndex) && (idx < (m_buffIndex + m_buffSize))) {
 			return m_buffer[idx - m_buffIndex];
-		} else {
-			return peekAt(idx);
 		}
+		return peekAt(idx);
 	}
 
 	void swap(ColdVector & other) noexcept {
@@ -213,8 +212,8 @@ struct ColdVector {
 				return *this;
 			}
 
-			T const operator*() const {
-				return m_internal->operator[](m_idx);
+			T& operator*() const {
+				return const_cast<ColdVector *>(m_internal)->operator[](m_idx);
 			}
 
 			pointer operator->() {
@@ -230,9 +229,9 @@ struct ColdVector {
 			bool operator==(iterator const& rhs) const {return (m_idx == rhs.m_idx) && (m_internal == rhs.m_internal);}
 			bool operator!=(iterator const& rhs) const {return !(*this == rhs);}
 			
-			std::weak_ordering operator<=>(iterator const& rhs) {
-				if(m_internal != rhs.m_internal) return std::weak_ordering::greater;
-				return m_idx <=> rhs.m_idx;
+			friend std::weak_ordering operator<=>(iterator const& lhs, iterator const& rhs) {
+				if(lhs.m_internal != rhs.m_internal) return std::weak_ordering::greater;
+				return lhs.m_idx <=> rhs.m_idx;
 			}
 
 		std::int64_t get_index() const {
@@ -244,12 +243,59 @@ struct ColdVector {
 			std::int64_t m_idx;
 	};
 
+	class reverse_iterator: public iterator {
+	public:
+		reverse_iterator(ColdVector const* pVec): iterator{pVec}
+		{}
+
+		reverse_iterator(iterator const& itr): iterator{itr}
+		{}
+
+		reverse_iterator& operator++(int) {
+			iterator::operator--();
+			return *this;
+		}
+
+		reverse_iterator& operator++() {
+			iterator::operator--();
+			return *this;
+		}
+
+		reverse_iterator operator+(iterator::difference_type v) const {
+			return iterator::operator-(v);	
+		}
+
+		reverse_iterator operator-(iterator::difference_type v) const {
+			return iterator::operator+(v);
+		}
+
+		reverse_iterator& operator+=(iterator::difference_type v) {
+			return iterator::operator-=(v);
+		}
+
+		reverse_iterator& operator-=(iterator::difference_type v) {
+			return iterator::operator+=(v);
+		}
+
+		std::weak_ordering operator<=>(reverse_iterator const& rhs) {
+			return rhs.iterator <=> this->iterator;
+		}
+	};
+
 	iterator begin() const { return iterator{this}; }
 
 	iterator end() const {
 		auto tmp = iterator{this};
 		tmp = tmp + m_vectorSize;
 		return tmp;
+	}
+
+	reverse_iterator rbegin() const {
+		return end() - 1;
+	}
+
+	reverse_iterator rend() const {
+		return begin() -1;
 	}
 
 	ColdVector(iterator const& begin,

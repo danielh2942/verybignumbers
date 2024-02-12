@@ -8,7 +8,6 @@
 
 #include <sstream>
 #include <string>
-#include <cstdlib>
 #include <cstdint>
 
 TEST_CASE("Test constructor works as expected", "[constructor]") {

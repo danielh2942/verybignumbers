@@ -5,7 +5,6 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_adapters.hpp>
 #include <catch2/generators/catch_generators_all.hpp>
-#include <cstddef>
 
 TEST_CASE("Test ColdVector", "[coldvec]") {
 	SECTION("Test Construction") {
@@ -28,3 +27,35 @@ TEST_CASE("Test ColdVector", "[coldvec]") {
 		CHECK(temp[4] == 5);
 	}
 }
+
+TEST_CASE("Test Iterator", "[coldvec_iter]") {
+	std::vector<int> a{1,2,3,4,5,6,7,8,9,10};
+	ColdVector<int> testVec{};
+	for(auto const& val : a) {
+		testVec.emplace_back(val);
+	}
+
+	std::size_t idx = 0;
+	for(auto itr = testVec.begin(); itr < testVec.end(); itr++) {
+		CHECK(*itr == a[idx++]);
+	}
+}
+
+TEST_CASE("Test Modification and access", "[coldvec_randaccess]") {
+	std::vector<int> a{1,2,3,4,5,6,7,8,9,10};
+	ColdVector<int> testVec{};
+	for(auto const& val : a) {
+		testVec.emplace_back(val);
+	}
+
+	for(auto& i : testVec) {
+		i*=2;
+	}
+
+	std::vector<int> b{2,4,6,8,10,12,14,16,18,20};
+	std::size_t idx = 0;
+	for(auto const& v: b) {
+		CHECK(testVec[idx++]  == v);
+	}
+}
+
