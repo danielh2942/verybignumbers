@@ -71,6 +71,7 @@ TEST_CASE("Test Iterator works", "[coldvec_iterator]") {
 TEST_CASE("Test Copy Ctor works as expected", "[coldvec_copyctor]") {
 	ColdVector<int> a{1,2,3,4,5,6,7,8,9,10};
 	ColdVector<int> b{a};
+	CHECK(a.size() == b.size());
 	for(std::size_t idx = 0; idx < a.size(); idx++) {
 		CHECK(a[idx] == b[idx]);
 	}
