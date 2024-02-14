@@ -334,6 +334,8 @@ private:
 	}
 
 	// Another helper for dealing with random file access.
+	// Internally this loads the boundary of BUFF_SIZE so as to 
+	// Reduce read/write operations from (N-BUFF_SIZE) to floor(N/BUFF_SIZE)
 	void load_buffer_at(std::size_t idx) {
 		// if the index is the same as the size of the file, load in nothing.
 		if(idx >= m_vectorSize) {
@@ -341,10 +343,12 @@ private:
 			m_buffIndex = m_vectorSize;
 			return;
 		}
-		m_fileStream.seekg(idx * sizeof(T), std::ios::beg);
-		m_fileStream.read(reinterpret_cast<char*>(&m_buffer), std::min(BUFF_SIZE, (m_vectorSize - idx)) * sizeof(T));
-		m_buffIndex = idx;
-		m_buffSize = std::min((m_vectorSize - idx),BUFF_SIZE);
+		std::size_t new_idx = (idx / BUFF_SIZE) * BUFF_SIZE;
+
+		m_fileStream.seekg(new_idx * sizeof(T), std::ios::beg);
+		m_fileStream.read(reinterpret_cast<char*>(&m_buffer), std::min(BUFF_SIZE, (m_vectorSize - new_idx)) * sizeof(T));
+		m_buffIndex = new_idx;
+		m_buffSize = std::min((m_vectorSize - new_idx),BUFF_SIZE);
 	}
 
 private:

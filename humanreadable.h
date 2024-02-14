@@ -26,6 +26,7 @@
  * TODO:Make the number support decimal places
  *
  */
+template<typename STORAGE_T = ColdVector<char>>
 struct HumanReadableNum {
 
 	HumanReadableNum(): m_data{'0'}, m_signed{false}
@@ -293,7 +294,7 @@ private:
 	std::pair<HumanReadableNum, HumanReadableNum> simple_divide(HumanReadableNum const& div) const;
 
 private:
-	ColdVector<char> m_data;	// String digit data, in reverse order
+	STORAGE_T        m_data;	// String digit data, in reverse order
 	bool			 m_signed; // If the number is signed and whatever
 
 private:
@@ -312,11 +313,13 @@ private:
 			"00", "90", "81", "72", "63", "54", "45", "36", "27", "18"};
 };
 
-inline bool operator==(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
+template<typename STORAGE_A, typename STORAGE_B>
+inline bool operator==(HumanReadableNum<STORAGE_A> const& lhs, HumanReadableNum<STORAGE_B> const& rhs) {
 	return std::is_eq(lhs<=>rhs);
 }
 
-inline std::strong_ordering operator<=>(HumanReadableNum const& lhs, HumanReadableNum const& rhs) {
+template<typename STORAGE_A, typename STORAGE_B>
+inline std::strong_ordering operator<=>(HumanReadableNum<STORAGE_A> const& lhs, HumanReadableNum<STORAGE_B> const& rhs) {
 	if(&lhs == &rhs) return std::strong_ordering::equal;
 	if(auto sign = rhs.m_signed <=> lhs.m_signed; sign != 0) return sign;
 	// Positive numbers
@@ -343,9 +346,10 @@ inline std::strong_ordering operator<=>(HumanReadableNum const& lhs, HumanReadab
 }
 
 // Placeholder division until I implement decimal places
-// TODO:replace eventually
-inline std::pair<HumanReadableNum, HumanReadableNum> HumanReadableNum::simple_divide(HumanReadableNum const& a) const {
-	std::pair<HumanReadableNum, HumanReadableNum> result{0,0};
+// TODO:Replace eventually
+template<typename STORAGE_T>
+inline std::pair<HumanReadableNum<STORAGE_T>, HumanReadableNum<STORAGE_T>> HumanReadableNum<STORAGE_T>::simple_divide(HumanReadableNum<STORAGE_T> const& a) const {
+	std::pair<HumanReadableNum<STORAGE_T>, HumanReadableNum<STORAGE_T>> result{0,0};
 	
 	if(abs(*this) < abs(a)) {
 		result.second = *this;
@@ -359,8 +363,8 @@ inline std::pair<HumanReadableNum, HumanReadableNum> HumanReadableNum::simple_di
 
 	std::size_t distance = std::max(m_data.size(), a.m_data.size()) - std::min(m_data.size(), a.m_data.size());
 	
-	HumanReadableNum dividend{0};
-	HumanReadableNum temp{*this};
+	HumanReadableNum<STORAGE_T> dividend{0};
+	HumanReadableNum<STORAGE_T> temp{*this};
 	// Exponent hack lmao
 	while(distance != 0) {
 		dividend.m_data.emplace_back('0');
@@ -391,8 +395,9 @@ inline std::pair<HumanReadableNum, HumanReadableNum> HumanReadableNum::simple_di
 	return result;
 }
 
-inline HumanReadableNum abs(HumanReadableNum const &a) {
-	HumanReadableNum tmp{a};
+template<typename STORAGE_T>
+inline HumanReadableNum<STORAGE_T> abs(HumanReadableNum<STORAGE_T> const &a) {
+	HumanReadableNum<STORAGE_T> tmp{a};
 	tmp.m_signed = false;
 	return tmp;
 }

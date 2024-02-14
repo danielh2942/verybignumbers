@@ -13,7 +13,7 @@ FixedBigNum<SIZE> fact(FixedBigNum<SIZE> const& a) {
 }
 
 int main() {
-	FixedBigNum<20> val{100};
+	FixedBigNum<270> val{1000};
 	auto res = fact(val);
 	std::cout << res << std::endl;
 	return 0;

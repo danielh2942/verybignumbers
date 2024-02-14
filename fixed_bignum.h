@@ -32,13 +32,16 @@
 template<std::size_t U>
 struct FixedBigNum {
 
-	constexpr FixedBigNum() : m_data{0}, m_signed{false}
+	constexpr FixedBigNum() : m_data{0}, m_signed{false}, m_maxDigit{0}
 	{}
 	
-	constexpr FixedBigNum(std::signed_integral auto x) : m_data{0}, m_signed{std::signbit(x)}
+	constexpr FixedBigNum(std::signed_integral auto x) : m_data{0}, m_signed{std::signbit(x)}, m_maxDigit{0}
 	{
 		if(m_signed) {
 			x *= -1;
+		}
+		if(x > UINT32_MAX) {
+			m_maxDigit = 1;
 		}
 		std::size_t idx = 0;
 		while(x > 0) {
@@ -48,9 +51,12 @@ struct FixedBigNum {
 		}
 	}
 
-	constexpr FixedBigNum(std::unsigned_integral auto x) : m_data{0}, m_signed{false}
+	constexpr FixedBigNum(std::unsigned_integral auto x) : m_data{0}, m_signed{false}, m_maxDigit{0}
 	{
 		std::size_t idx = 0;
+		if(x > UINT32_MAX) {
+			m_maxDigit = 1;
+		}
 		while(x > 0) {
 			m_data[idx] = x % ((std::uint64_t)UINT32_MAX + 1);
 			x /= ((std::uint64_t)UINT32_MAX + 1);
@@ -59,7 +65,7 @@ struct FixedBigNum {
 	}
 
 	template<size_t T>
-	constexpr FixedBigNum(FixedBigNum<T> const& x) : m_data{0}, m_signed{x.m_signed}
+	constexpr FixedBigNum(FixedBigNum<T> const& x) : m_data{0}, m_signed{x.m_signed}, m_maxDigit{x.m_maxDigit}
 	{
 		if constexpr(T > U) {
 			// Truncate the number
@@ -105,10 +111,19 @@ struct FixedBigNum {
 		}
 		
 		std::uint64_t carry = 0U;
-		for(std::size_t idx = 0; idx < U; idx++) {
+		m_maxDigit = std::max(m_maxDigit, add.m_maxDigit) + 1;
+		for(std::size_t idx = 0; idx < m_maxDigit; idx++) {
 			carry += ((std::uint64_t)(m_data[idx] & 0xFFFFFFFF)) + (std::uint64_t)(add.m_data[idx] & 0xFFFFFFFF);
 			m_data[idx] = carry & 0xFFFFFFFF;
 			carry >>= 32;
+		}
+
+		if((m_maxDigit < U) && (carry != 0)) {
+			m_data[m_maxDigit] = carry & 0xFFFFFFFF;
+		}
+
+		while(!m_data[m_maxDigit]) {
+			m_maxDigit--;
 		}
 		return *this;		
 	}
@@ -144,7 +159,6 @@ struct FixedBigNum {
 		}
 
 		if(abs(*this) < abs(sub)) {
-			std::cout << "Fuck" << std::endl;
 			FixedBigNum temp = sub - *this;
 			m_data.swap(temp.m_data);
 			m_signed ^= true;
@@ -154,7 +168,8 @@ struct FixedBigNum {
 		std::uint64_t buff = 0;
 		std::uint64_t tmp = 0;
 		bool all_zeroes = true;
-		for(auto idx = 0; idx < U; idx++) {
+		m_maxDigit = std::max(m_maxDigit, sub.m_maxDigit) + 1;
+		for(auto idx = 0; idx < m_maxDigit; idx++) {
 			tmp = m_data[idx] & 0xFFFFFFFF;
 			buff = tmp - (sub.m_data[idx]&0xFFFFFFFF) - buff;
 			m_data[idx] = buff & 0xFFFFFFFF;
@@ -164,6 +179,10 @@ struct FixedBigNum {
 
 		if(all_zeroes) {
 			m_signed = false;
+		}
+
+		while(!m_data[m_maxDigit]) {
+			m_maxDigit--;
 		}
 
 		return *this;
@@ -188,7 +207,8 @@ struct FixedBigNum {
 	constexpr FixedBigNum operator*(FixedBigNum const& mult) const {
 		// TODO:Replace with karatsuba
 		FixedBigNum temp{0};
-		for(std::size_t idx = 0; idx < U; idx++) {
+		temp.m_maxDigit = std::min(U - 1, (m_maxDigit + 1) * (mult.m_maxDigit + 1)) + 1;
+		for(std::size_t idx = 0; idx < temp.m_maxDigit; idx++) {
 			std::uint64_t carry = 0;
 			for(std::size_t idy = 0; (idx + idy) < U; idy++) {
 				carry += ((std::uint64_t)(m_data[idx] & 0xFFFFFFFF)) * ((std::uint64_t)(mult.m_data[idy] & 0xFFFFFFFF));
@@ -202,6 +222,10 @@ struct FixedBigNum {
 			temp.m_signed = true;
 		}
 
+		while(!temp.m_data[temp.m_maxDigit]) {
+			temp.m_maxDigit--;
+		}
+
 		return temp;
 	}
 
@@ -209,6 +233,7 @@ struct FixedBigNum {
 		
 		auto temp = operator*(mult);
 		m_data.swap(temp.m_data);
+		m_maxDigit = temp.m_maxDigit;
 		m_signed = temp.m_signed;
 
 		return *this;
@@ -385,7 +410,7 @@ struct FixedBigNum {
 			os << val;
 		} else {
 			HumanReadableNum tmp{0};
-			for(auto idx = U; idx > 0; idx--) {
+			for(auto idx = bigNum.m_maxDigit + 1; idx > 0; idx--) {
 				tmp *= HrU32MaxAdd1;
 				tmp += bigNum.m_data[idx - 1];
 			}
@@ -447,8 +472,9 @@ private:
 	}
 
 private:
-	std::array<std::uint32_t, U> m_data;   // The number data itself
-	bool						 m_signed; // The sign for the number
+	std::array<std::uint32_t, U> m_data;     // The number data itself
+	bool						 m_signed;	 // The sign for the number
+	std::size_t					 m_maxDigit; // The Maximum Occupied digit
 };
 
 using int1024 = FixedBigNum<32>;
