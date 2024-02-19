@@ -4,14 +4,15 @@
  * 
  * Copyright: 2024 Daniel Hannon 
  */
+#ifndef FIXED_BIGNUM_H_48E15CF0647345CD87782509952C8E4E
+#define FIXED_BIGNUM_H_48E15CF0647345CD87782509952C8E4E 1
 
 #include "humanreadable.h"
+#include "arbitrary_bignum.h"
 #include <ostream>
 
 #include <bit>
 #include <compare>
-#ifndef FIXED_BIGNUM_H_48E15CF0647345CD87782509952C8E4E
-#define FIXED_BIGNUM_H_48E15CF0647345CD87782509952C8E4E 1
 
 #include <array>
 #include <concepts>
@@ -205,28 +206,58 @@ struct FixedBigNum {
 	}
 
 	constexpr FixedBigNum operator*(FixedBigNum const& mult) const {
-		// TODO:Replace with karatsuba
-		FixedBigNum temp{0};
-		temp.m_maxDigit = std::min(U - 1, (m_maxDigit + 1) * (mult.m_maxDigit + 1)) + 1;
-		for(std::size_t idx = 0; idx < temp.m_maxDigit; idx++) {
-			std::uint64_t carry = 0;
-			for(std::size_t idy = 0; (idx + idy) < U; idy++) {
-				carry += ((std::uint64_t)(m_data[idx] & 0xFFFFFFFF)) * ((std::uint64_t)(mult.m_data[idy] & 0xFFFFFFFF));
-				carry += (temp.m_data[idx+idy]) & 0xFFFFFFFF;
-				temp.m_data[idx+idy] = carry & 0xFFFFFFFF;
-				carry >>= 32;
+		if(m_maxDigit == 0 && m_data[0] == 0) return {0};
+		if(U <= 80000) {
+			FixedBigNum temp{0};
+			temp.m_maxDigit = std::min(U - 1, (m_maxDigit + 1) * (mult.m_maxDigit + 1)) + 1;
+			for(std::size_t idx = 0; idx < temp.m_maxDigit; idx++) {
+				std::uint64_t carry = 0;
+				for(std::size_t idy = 0; (idx + idy) < U; idy++) {
+					carry += ((std::uint64_t)(m_data[idx] & 0xFFFFFFFF)) * ((std::uint64_t)(mult.m_data[idy] & 0xFFFFFFFF));
+					carry += (temp.m_data[idx+idy]) & 0xFFFFFFFF;
+					temp.m_data[idx+idy] = carry & 0xFFFFFFFF;
+					carry >>= 32;
+				}
 			}
-		}
 
-		if(m_signed != mult.m_signed) {
-			temp.m_signed = true;
-		}
+			if(m_signed != mult.m_signed) {
+				temp.m_signed = true;
+			}
 
-		while(!temp.m_data[temp.m_maxDigit]) {
-			temp.m_maxDigit--;
-		}
+			while(!temp.m_data[temp.m_maxDigit]) {
+				temp.m_maxDigit--;
+			}
 
-		return temp;
+			return temp;
+		} else {
+			std::array<std::uint64_t, U> convulution{0};
+			FixedBigNum result{0};
+			result.m_maxDigit = std::min(U - 1, (m_maxDigit + 1) * (mult.m_maxDigit + 1)) + 1;
+
+			for(std::size_t idx = 0; idx <= m_maxDigit; idx++) {
+				if(m_data[idx] == 0) continue;
+				for(std::size_t idy = 0; (idx + idy) < U; idy++) {
+					convulution[idx + idy] += ((std::uint64_t)m_data[idx] & 0xFFFFFFFF) * ((std::uint64_t)mult.m_data[idy] & 0xFFFFFFFF);
+				}
+			}
+
+			std::uint64_t carry = 0;
+			for(std::size_t idx = 0; idx < U; idx++) {
+				carry += convulution[idx];
+				result.m_data[idx] = (carry & 0xFFFFFFFF);
+				carry = carry >> 32;
+			}
+			
+			while((result.m_data[result.m_maxDigit] == 0) && (result.m_maxDigit != 0)) {
+				result.m_maxDigit--;
+			}
+
+			if(m_signed != mult.m_signed) {
+				result.m_signed = true;
+			}
+
+			return result;
+		}
 	}
 
 	constexpr FixedBigNum& operator*=(FixedBigNum const& mult) {
@@ -395,8 +426,8 @@ struct FixedBigNum {
 	}
 
 	friend std::ostream & operator<<(std::ostream & os, FixedBigNum const& bigNum) {
-		const HumanReadableNum HrU32MaxAdd1{0x100000000};
-
+		//const HumanReadableNum HrU32MaxAdd1{0x100000000};
+		std::uint64_t HrU32MaxAdd1 = 0x100000000;
 		if constexpr(U == 1) {
 			if(bigNum.m_signed) {
 				os << '-';
@@ -409,7 +440,8 @@ struct FixedBigNum {
 			std::uint64_t val = (bigNum.m_data[0] & 0xFFFFFFFF) ^ ((std::uint64_t)(bigNum.m_data[1] & 0xFFFFFFFF) << 32);
 			os << val;
 		} else {
-			HumanReadableNum tmp{0};
+			ArbitraryBigNum<ARBITRARY_PRINTABLE> tmp{0};
+			//HumanReadableNum tmp{0};
 			for(auto idx = bigNum.m_maxDigit + 1; idx > 0; idx--) {
 				tmp *= HrU32MaxAdd1;
 				tmp += bigNum.m_data[idx - 1];

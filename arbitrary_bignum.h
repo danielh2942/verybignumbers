@@ -8,6 +8,7 @@
 #ifndef ARBITRARY_BIGNUM_H_00E681C94204436A9C4EC4EFAA0DE0F9
 #define ARBITRARY_BIGNUM_H_00E681C94204436A9C4EC4EFAA0DE0F9 1
 #include "cold_vector.h"
+#include "util.h"
 
 #include <utility>
 #include <compare>
@@ -15,6 +16,7 @@
 #include <iostream>
 #include <concepts>
 #include <algorithm>
+#include <type_traits>
 
 #include <cmath>
 #include <cstddef>
@@ -145,8 +147,7 @@ struct ArbitraryBigNum {
 
 		// If it reaches here the sign definitely flips
 		if(absolute_compare(*this, sub) == std::strong_ordering::less) {
-			ArbitraryBigNum temp{sub};
-			sub -= *this;
+			ArbitraryBigNum temp = sub - *this;
 			m_data.swap(temp.m_data);
 			m_signed ^= true;
 			return *this;
@@ -206,6 +207,89 @@ struct ArbitraryBigNum {
 		return temp;
 	}
 
+	ArbitraryBigNum operator*(ArbitraryBigNum const& val) const {
+		if ((val == 0) || (*this == 0)) {
+			return 0;
+		}
+
+		std::uint64_t buff = 0;
+		ArbitraryBigNum result{0};
+		for(std::size_t idx = 0; idx < val.m_data.size(); idx++) {
+			for(std::size_t idy = 0; idy < m_data.size(); idy++) {
+				if((idx + idy) >= result.m_data.size()) result.m_data.emplace_back(0);
+				buff += ((std::uint64_t)m_data[idy] & 0xFFFFFFFF) * ((std::uint64_t)val.m_data[idx]);
+				buff += ((std::uint64_t)result.m_data[idx + idy] & 0xFFFFFFFF);
+				result.m_data[idx + idy] = (buff % sc_modVal) & 0xFFFFFFFF;
+				buff /= sc_modVal;
+			}
+			while(buff != 0) {
+				result.m_data.emplace_back(buff % sc_modVal);
+				buff /= sc_modVal;
+			}
+		}
+
+		if(m_signed != val.m_signed) {
+			result.m_signed = true;
+		}
+
+		while((result.m_data.size() != 1) 
+			  && (result.m_data[result.m_data.size() - 1] == 0)) {
+			result.m_data.pop_back();
+		}
+
+		return result;
+	}
+
+	ArbitraryBigNum& operator*=(ArbitraryBigNum const& val) {
+		ArbitraryBigNum temp = this->operator*(val);
+		m_data.swap(temp.m_data);
+		m_signed = temp.m_signed;
+		return *this;
+	}
+
+	// Cut out allocations for small numbers and whatever
+	ArbitraryBigNum& operator*=(width32int auto val) {
+		if constexpr(!std::is_unsigned_v<decltype(val)>) {
+			if(std::signbit(val)) {
+				m_signed ^= true;
+				val *= -1;
+			}
+		}
+		std::uint64_t buff = 0;
+		for(auto idx = 0; idx < m_data.size(); idx++) {
+			buff += ((std::uint64_t)m_data[idx]&0xFFFFFFFF) * ((std::uint64_t)val & 0xFFFFFFFF);
+			m_data[idx] = buff % sc_modVal;
+			buff /= sc_modVal;
+		}
+		while(buff != 0) {
+			m_data.emplace_back(buff % sc_modVal);
+			buff /= sc_modVal;
+		}
+		return *this;
+	}
+
+	ArbitraryBigNum operator*(width32int auto val) const {
+		ArbitraryBigNum temp{*this};
+		temp *= val;
+		return temp;
+	}
+
+	ArbitraryBigNum operator/(ArbitraryBigNum const& val) const {
+		return 0;
+	}
+
+	ArbitraryBigNum& operator/=(ArbitraryBigNum const& val) {
+		return *this;
+	}
+
+	ArbitraryBigNum operator%(ArbitraryBigNum const& val) const {
+		return 0;
+	}
+
+	ArbitraryBigNum& operator%=(ArbitraryBigNum const& v) {
+		return *this;
+	}
+
 // Masking and bitshifts and whatever
 	// Left Shift Assignment operator
 	// IMPORTANT: It only works if you use UINT32_MAX as MAX_VAL
@@ -238,21 +322,54 @@ struct ArbitraryBigNum {
 	}
 
 // Comparison Operators
-	friend std::strong_ordering absolute_compare(ArbitraryBigNum const& lhs, ArbitraryBigNum const& rhs);
+	/**
+	 * This compares absolute values in a way which does not perform any copy construction
+	 * operations in order to save compute time, memory, etc.
+	 */
+	friend std::strong_ordering absolute_compare(ArbitraryBigNum const& lhs, ArbitraryBigNum const& rhs) {
+		if(auto width = lhs.m_data.size() <=> rhs.m_data.size(); width != 0) {
+			return width;
+		}
+		for(std::size_t idx = lhs.m_data.size(); idx > 0; idx--) {
+			if(auto val = lhs.m_data[idx - 1] <=> rhs.m_data[idx - 1]; val != 0) {
+				return val;
+			}
+		}
+		return std::strong_ordering::equal;
+	}
 
-	friend bool operator==(ArbitraryBigNum const& lhs, ArbitraryBigNum const& rhs);
-	friend std::strong_ordering operator<=>(ArbitraryBigNum const& lhs, ArbitraryBigNum const& rhs);
+	friend bool operator==(ArbitraryBigNum const& lhs, ArbitraryBigNum const& rhs) {
+		return std::is_eq(lhs <=> rhs);
+	}
+
+	friend std::strong_ordering operator<=>(ArbitraryBigNum const& lhs, ArbitraryBigNum const& rhs) {
+		if(&lhs == &rhs) return std::strong_ordering::equal;
+		if(auto sign = rhs.m_signed <=> lhs.m_signed; sign != 0) return sign;
+		if(!lhs.m_signed) {
+			return absolute_compare(lhs, rhs);
+		} else {
+			return absolute_compare(rhs, lhs);
+		}
+	}
 
 	template<std::size_t MAX>
 	friend std::ostream& operator<<(std::ostream& os, ArbitraryBigNum<MAX> const& abg) {
 		if constexpr(MAX == ARBITRARY_PRINTABLE) {
+			os << sc_modVal << '\n';
 			if(abg.m_signed) {
 				os << '-';
 			}
-			for(auto itr = abg.m_data.rbegin(); itr > (abg.m_data.rend() - 1); itr++) {
-				os << std::setfill('0') << std::setw(9) << *itr;
+			os << abg.m_data[abg.m_data.size() - 1];
+			for(int itr = abg.m_data.size() - 2; itr > 0; itr--) {
+				os << std::setw(9) << std::setfill('0') << abg.m_data[itr - 1];
 			}
-			os << abg.m_data[0];
+		} else {
+			ArbitraryBigNum<ARBITRARY_PRINTABLE> result{0};
+			for(int idx = abg.m_data.size() - 1; idx >= 0; idx--) {
+				result *= sc_modVal;
+				result += abg.m_data[idx];
+			}
+			os << result;
 		}
 		return os;
 	}
@@ -262,39 +379,6 @@ private:
 	ColdVector<std::uint32_t>		m_data;					 // Digit Data in reversed Order.
 	bool							m_signed;				 // If the number carries a sign
 };
-
-/**
- * This compares absolute values in a way which does not perform any copy construction
- * operations in order to save compute time, memory, etc.
- */
-template<std::size_t V>
-inline std::strong_ordering absolute_compare(ArbitraryBigNum<V> const& lhs, ArbitraryBigNum<V> const& rhs) {
-	if(auto width = lhs.m_data.size() <=> rhs.m_data.size(); width != 0) {
-		return width;
-	}
-	for(std::size_t idx = lhs.m_data.size(); idx > 0; idx--) {
-		if(auto val = lhs.m_data[idx - 1] <=> rhs.m_data[idx - 1]; val != 0) {
-			return val;
-		}
-	}
-	return std::strong_ordering::equal;
-}
-
-template<std::size_t V>
-inline bool operator==(ArbitraryBigNum<V> const& lhs, ArbitraryBigNum<V> const& rhs) {
-	return std::is_eq(lhs <=> rhs);
-}
-
-template<std::size_t V>
-inline std::strong_ordering operator<=>(ArbitraryBigNum<V> const& lhs, ArbitraryBigNum<V> const& rhs) {
-	if(&lhs == &rhs) return std::strong_ordering::equal;
-	if(auto sign = rhs.m_signed <=> lhs.m_signed; sign != 0) return sign;
-	if(!lhs.m_signed) {
-		return absolute_compare(lhs, rhs);
-	} else {
-		return absolute_compare(rhs, lhs);
-	}
-}
 
 #endif // ARBITRARY_BIGNUM_H_00E681C94204436A9C4EC4EFAA0DE0F9
 	

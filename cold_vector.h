@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <compare>
 #include <cstddef>
 #include <cstdint>
@@ -189,13 +190,20 @@ struct ColdVector {
 				return *this;
 			}
 
-			iterator operator+(std::size_t val) {
+			iterator operator+(std::size_t val) const {
 				auto tmp{*this};
 				tmp.m_idx += val;
 				return tmp;
 			}
 
-			iterator operator-(std::size_t val) {
+			iterator operator+(std::integral auto x) const {
+				if(std::signbit(x)) {
+					return this->operator-((std::size_t)(x * -1));
+				}
+				return this->operator+((std::size_t)x);
+			}
+
+			iterator operator-(std::size_t val) const {
 				auto tmp{*this};
 				tmp.m_idx -= val;
 				return tmp;
@@ -276,8 +284,8 @@ struct ColdVector {
 			return iterator::operator+=(v);
 		}
 
-		std::weak_ordering operator<=>(reverse_iterator const& rhs) {
-			return rhs.iterator <=> this->iterator;
+		friend std::weak_ordering operator<=>(reverse_iterator const& lhs, reverse_iterator const& rhs) {
+			return *(static_cast<iterator const*>(&rhs)) <=> *(static_cast<iterator const *>(&lhs));
 		}
 	};
 
