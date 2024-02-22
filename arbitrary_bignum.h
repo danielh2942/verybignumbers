@@ -180,9 +180,7 @@ struct ArbitraryBigNum {
 			}
 		}
 
-		for(std::size_t idx = m_data.size() - 1; idx > 0 && (m_data[idx] == 0); idx--) {
-			m_data.pop_back();
-		}
+		shrink_number();
 
 		if(m_data.size() == 1 && m_data[0] == 0) {
 			m_signed = false;
@@ -232,10 +230,7 @@ struct ArbitraryBigNum {
 			result.m_signed = true;
 		}
 
-		while((result.m_data.size() != 1) 
-			  && (result.m_data[result.m_data.size() - 1] == 0)) {
-			result.m_data.pop_back();
-		}
+		result.shrink_number();	
 
 		return result;
 	}
@@ -275,18 +270,48 @@ struct ArbitraryBigNum {
 	}
 
 	ArbitraryBigNum operator/(ArbitraryBigNum const& val) const {
-		return 0;
+		return simple_divide(val).first;
 	}
 
 	ArbitraryBigNum& operator/=(ArbitraryBigNum const& val) {
+		auto temp = *this / val;
+		m_data.swap(temp.m_data);
+		m_signed = temp.m_signed;
 		return *this;
 	}
 
+	ArbitraryBigNum& operator/=(width32int auto val) {
+		if constexpr(std::is_signed_v<decltype(val)>) {
+			if(std::signbit(val)) {
+				m_signed ^= true;
+			}
+		}
+		std::uint64_t carry = 0;
+		for(int idx = m_data.size() - 1; idx > 0; idx--) {
+			carry += m_data[idx] & 0xFFFFFFFF;
+			m_data[idx] = carry / val & 0xFFFFFFFF;
+			carry %= val;
+			carry *= sc_modVal;
+		}
+		carry += (m_data[0] & 0xFFFFFFFF);
+		m_data[0] = carry / val;
+		return *this;
+	}
+
+	ArbitraryBigNum operator/(width32int auto val) const {
+		ArbitraryBigNum temp{*this};
+		temp /= val;
+		return temp;
+	}
+
 	ArbitraryBigNum operator%(ArbitraryBigNum const& val) const {
-		return 0;
+		return simple_divide(val).second;
 	}
 
 	ArbitraryBigNum& operator%=(ArbitraryBigNum const& v) {
+		auto temp = *this % v;
+		m_data.swap(temp.m_data);
+		m_signed = temp.m_signed;
 		return *this;
 	}
 
@@ -372,6 +397,18 @@ struct ArbitraryBigNum {
 			os << result;
 		}
 		return os;
+	}
+private:
+	// Remove leading zeroes from the number :D
+	void shrink_number() {
+		while((m_data.size() != 1) 
+			  && (m_data[m_data.size() - 1] == 0)) {
+			m_data.pop_back();
+		}
+	}
+
+	std::pair<ArbitraryBigNum, ArbitraryBigNum> simple_divide(ArbitraryBigNum const& val) const {
+		return {};
 	}
 
 private:

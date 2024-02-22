@@ -20,10 +20,10 @@ $ cmake -G "Ninja" ../
 
 ## TODO
 - [X] Basic composite number type
-- [] Trivially Human-Readable number type
-- - Decimal place support
-- [] Negative Number support
+- [X] --Trivially Human-Readable number type-- (Bad Idea (VERY VERY slow) but It's done)
+    - [] Decimal place support
+- [X] Negative Number support
 - [] Non-statically sized type
-- [] Statically sized (But templated) numerical type
+- [X] Statically sized (But templated) numerical type
 - [] Floating Point type
 - [] Investigate whether or not AVX is practical

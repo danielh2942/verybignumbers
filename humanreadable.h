@@ -293,7 +293,7 @@ private:
 	std::pair<HumanReadableNum, HumanReadableNum> simple_divide(HumanReadableNum const& div) const;
 
 private:
-	ColdVector<char> m_data;	// String digit data, in reverse order
+	std::vector<char> m_data;	// String digit data, in reverse order
 	bool			 m_signed; // If the number is signed and whatever
 
 private:

@@ -4,3 +4,4 @@
 -Ibuild/_deps/catch2-src/src/
 -Ibuild/_deps/catch2-build/generated-includes/
 -Ibuild/_deps/uuid_v4-src/
+-Ibuild/_deps/llfio-src/include/

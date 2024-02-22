@@ -26,6 +26,8 @@ add_library(MyUtils STATIC util.cpp)
 include(cmake/CPM.cmake)
 CPMAddPackage("gh:catchorg/Catch2@3.5.2")
 CPMAddPackage("gh:crashoz/uuid_v4#bae4100")
+CPMAddPackage("gh:ned14/quickcpplib#72277c7")
+CPMAddPackage("gh:ned14/llfio#418a2e9")
 
 # ColdStorage needs avx2 support because of UUID stuff
 # TODO:Add check and error-out if not supported
@@ -49,3 +51,4 @@ catch_discover_tests(test_readable)
 catch_discover_tests(test_coldvector)
 catch_discover_tests(test_fixed_bignum)
 
+add_subdirectory(experiment)
