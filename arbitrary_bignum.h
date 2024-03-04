@@ -6,6 +6,7 @@
  */
 
 #include <bit>
+#include <iterator>
 #ifndef ARBITRARY_BIGNUM_H_00E681C94204436A9C4EC4EFAA0DE0F9
 #define ARBITRARY_BIGNUM_H_00E681C94204436A9C4EC4EFAA0DE0F9 1
 #include "cold_vector.h"
@@ -326,6 +327,7 @@ struct ArbitraryBigNum {
 			auto bit_offset = offset & 0x1F;
 			if(offset == 0) return *this;
 			std::uint64_t buff;
+			for(std::size_t idx = 0; idx < word_offset; idx++) m_data.emplace_back(0);
 			for(std::size_t idx = m_data.size() - 2; idx > word_offset; idx--) {
 				buff = (m_data[idx - word_offset] & 0xFFFFFFFF) << bit_offset;
 				buff ^= (m_data[(idx - 1) - word_offset] & 0xFFFFFFFF) >> (32 - bit_offset);
@@ -344,6 +346,40 @@ struct ArbitraryBigNum {
 	ArbitraryBigNum operator<<(std::size_t offset) const {
 		ArbitraryBigNum temp{*this};
 		temp <<= offset;
+		return temp;
+	}
+
+	// Right shift
+	// Does nothing for non-standard numbers :DDDDDD
+	ArbitraryBigNum& operator>>=(std::size_t offset) {
+		if constexpr(MAX_VAL == UINT32_MAX) {
+			auto word_offset = offset >> 5;
+			auto bit_offset = offset & 0x1F;
+			if(offset == 0) return *this;
+			std::uint64_t buff;
+			if(m_data.size() == 1) {
+				if(word_offset > 1) {
+					m_data[0] = 0;
+				} else {
+					m_data[0] >>= bit_offset;
+				}
+				return  *this;
+			}
+			buff = ((std::uint64_t)m_data[m_data.size() - 1] << 32) ^ (m_data[m_data.size() - 2] & 0xFFFFFFFF);
+			for(auto idx = m_data.size() - word_offset - 1; idx >= 0; idx--) {
+				m_data[idx] = buff >> bit_offset;
+				buff <<= 32;
+				buff ^= m_data[idx + word_offset - 1];
+			}
+
+			for(auto idx = 0; idx < word_offset; idx++) m_data.pop_back();
+		}
+		return *this;
+	}
+
+	ArbitraryBigNum operator>>(std::size_t offset) const {
+		ArbitraryBigNum temp{*this};
+		temp >>= offset;
 		return temp;
 	}
 
