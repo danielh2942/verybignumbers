@@ -79,6 +79,8 @@ struct FixedBigNum {
 // Friend operators
 	friend FixedBigNum abs(FixedBigNum const&);
 
+	friend bool signbit(FixedBigNum const&);
+
 // Comparators
 
 	constexpr std::partial_ordering operator<=>(FixedBigNum const& vs) const {
@@ -458,6 +460,10 @@ struct FixedBigNum {
 		FixedBigNum tmp{num};
 		tmp.m_signed = false;
 		return tmp;
+	}
+
+	friend bool signbit(FixedBigNum const& num) {
+		return num.m_signed;
 	}
 
 private:

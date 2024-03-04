@@ -5,6 +5,7 @@
  * Copyright: 2024 Daniel Hannon 
  */
 
+#include <bit>
 #ifndef ARBITRARY_BIGNUM_H_00E681C94204436A9C4EC4EFAA0DE0F9
 #define ARBITRARY_BIGNUM_H_00E681C94204436A9C4EC4EFAA0DE0F9 1
 #include "cold_vector.h"
@@ -377,6 +378,27 @@ struct ArbitraryBigNum {
 		}
 	}
 
+	friend bool operator==(ArbitraryBigNum const& lhs, width32int auto const rhs) {
+		return std::is_eq(lhs <=> rhs);
+	}
+
+	friend std::strong_ordering operator<=>(ArbitraryBigNum const& lhs, width32int auto rhs) {
+		if constexpr(std::is_signed_v<decltype(rhs)>) {
+			if(std::signbit(rhs)) {
+				if(!lhs.m_signed) return std::strong_ordering::greater;
+				rhs *= -1;
+			} else {
+				if(lhs.m_signed) return std::strong_ordering::less;
+			}
+		} else {
+			if(lhs.m_signed) return std::strong_ordering::less;
+		}
+
+		if(lhs.m_data.size() > 1) return std::strong_ordering::greater;
+
+		return lhs.m_data[0] <=> rhs;
+	}
+
 	template<std::size_t MAX>
 	friend std::ostream& operator<<(std::ostream& os, ArbitraryBigNum<MAX> const& abg) {
 		if constexpr(MAX == ARBITRARY_PRINTABLE) {
@@ -398,6 +420,17 @@ struct ArbitraryBigNum {
 		}
 		return os;
 	}
+
+	friend bool signbit(ArbitraryBigNum const& num) {
+		return num.m_signed;
+	}
+
+	friend ArbitraryBigNum abs(ArbitraryBigNum const& num) {
+		auto temp = ArbitraryBigNum{num};
+		temp.m_signed = false;
+		return temp;
+	}
+
 private:
 	// Remove leading zeroes from the number :D
 	void shrink_number() {
@@ -408,7 +441,43 @@ private:
 	}
 
 	std::pair<ArbitraryBigNum, ArbitraryBigNum> simple_divide(ArbitraryBigNum const& val) const {
-		return {};
+		auto res = std::make_pair<ArbitraryBigNum, ArbitraryBigNum>(0,*this);
+		if((*this == 0) || (val == 0)) return res;
+		auto check = absolute_compare(*this, val); 
+		if(check == std::weak_ordering::less) {
+			return res;
+		}
+		if(check == std::strong_ordering::equal) {
+			return {1,0};
+		}
+
+		if constexpr(MAX_VAL == UINT32_MAX) {
+			// I can do bitshifts and stuff :DDDD
+			std::size_t len_divisor = val.m_data.size() - 1;
+			std::size_t len_dividend = m_data.size() - 1;
+
+			if(len_divisor > len_dividend) return res;
+
+			int dividend_pop_bits = (32 - std::countl_zero(m_data[len_dividend])) + (len_dividend * 32);
+			int divisor_pop_bits = (32 - std::countl_zero(val.m_data[len_divisor])) + (len_divisor * 32);
+
+			int operations = (dividend_pop_bits - divisor_pop_bits);
+
+			if(operations < 0) return val;
+
+			ArbitraryBigNum divisor = val << operations;
+			while((absolute_compare(divisor, val) != std::strong_ordering::less) && (operations >= 0)) {
+				res.first<<=1;
+				if(res.second >= divisor) {
+					res.second -= divisor;
+					res.first++;
+				}
+				divisor >>= 1;
+				operations--;
+			}
+		}
+
+		return res;
 	}
 
 private:
