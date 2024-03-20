@@ -328,14 +328,22 @@ struct ArbitraryBigNum {
 			if(offset == 0) return *this;
 			std::uint64_t buff;
 			for(std::size_t idx = 0; idx <= word_offset; idx++) m_data.emplace_back(0);
-			for(std::size_t idx = m_data.size() - 2; idx > word_offset; idx--) {
-				buff = (m_data[idx - word_offset] & 0xFFFFFFFF) << bit_offset;
-				buff ^= (m_data[(idx - 1) - word_offset] & 0xFFFFFFFF) >> (32 - bit_offset);
-				m_data[idx] = buff & 0xFFFFFFFF;
+			if((m_data.size() == 2) && (word_offset == 0)) {
+				buff = (std::uint64_t)(m_data[0]&0xFFFFFFFF);
+				m_data[1] = (buff >> (32 - bit_offset)) &0xFFFFFFFF;
+				m_data[0] = (buff << bit_offset) & 0xFFFFFFFF;
+			} else {
+				for(int idx = m_data.size() - 2; idx > word_offset; idx--) {
+					buff = (m_data[idx - word_offset] & 0xFFFFFFFF) << bit_offset;
+					buff ^= (m_data[(idx - 1) - word_offset] & 0xFFFFFFFF) >> (32 - bit_offset);
+					m_data[idx] = buff &0xFFFFFFFF;
+				}
 			}
-
 			for(std::size_t idx = 0; idx < word_offset; idx++) {
 				m_data[idx] = 0;
+			}
+			while((m_data.size() > 1) && (m_data[m_data.size() - 1] == 0)) {
+				m_data.pop_back();
 			}
 		}
 		return *this;
