@@ -88,7 +88,7 @@ struct ArbitraryBigNum {
 		std::uint64_t carry = 0;
 		std::size_t limit = std::min(m_data.size(), add.m_data.size());
 		for(std::size_t idx = 0; idx < limit; idx++) {
-			carry += ((m_data[idx] & 0xFFFFFFFF)  + (add.m_data[idx] % 0xFFFFFFFF));
+			carry += ((std::uint64_t)(m_data[idx] & 0xFFFFFFFF) + (std::uint64_t)(add.m_data[idx] & 0xFFFFFFFF));
 			m_data[idx] = carry % sc_modVal;
 			carry /= sc_modVal;
 		}
@@ -327,7 +327,7 @@ struct ArbitraryBigNum {
 			auto bit_offset = offset & 0x1F;
 			if(offset == 0) return *this;
 			std::uint64_t buff;
-			for(std::size_t idx = 0; idx < word_offset; idx++) m_data.emplace_back(0);
+			for(std::size_t idx = 0; idx <= word_offset; idx++) m_data.emplace_back(0);
 			for(std::size_t idx = m_data.size() - 2; idx > word_offset; idx--) {
 				buff = (m_data[idx - word_offset] & 0xFFFFFFFF) << bit_offset;
 				buff ^= (m_data[(idx - 1) - word_offset] & 0xFFFFFFFF) >> (32 - bit_offset);
@@ -365,12 +365,17 @@ struct ArbitraryBigNum {
 				}
 				return  *this;
 			}
-			buff = ((std::uint64_t)m_data[m_data.size() - 1] << 32) ^ (m_data[m_data.size() - 2] & 0xFFFFFFFF);
-			for(auto idx = m_data.size() - word_offset - 1; idx >= 0; idx--) {
+			if(m_data.size() == 1) {
+				buff = ((std::uint64_t)m_data[0]) & 0xFFFFFFFF;
+			} else {
+				buff = ((std::uint64_t)m_data[m_data.size() - 1] << 32) ^ (m_data[m_data.size() - 2] & 0xFFFFFFFF);
+			}
+			for(auto idx = m_data.size() - word_offset - 1; idx > 0; idx--) {
 				m_data[idx] = buff >> bit_offset;
 				buff <<= 32;
 				buff ^= m_data[idx + word_offset - 1];
 			}
+			m_data[0] = buff >> bit_offset;
 
 			for(auto idx = 0; idx < word_offset; idx++) m_data.pop_back();
 		}
@@ -432,25 +437,26 @@ struct ArbitraryBigNum {
 
 		if(lhs.m_data.size() > 1) return std::strong_ordering::greater;
 
-		return lhs.m_data[0] <=> rhs;
+		return lhs.m_data[0] <=> static_cast<std::uint32_t>(rhs);
 	}
 
-	template<std::size_t MAX>
-	friend std::ostream& operator<<(std::ostream& os, ArbitraryBigNum<MAX> const& abg) {
-		if constexpr(MAX == ARBITRARY_PRINTABLE) {
-			os << sc_modVal << '\n';
+	friend std::ostream& operator<<(std::ostream& os, ArbitraryBigNum const& abg) {
+		if constexpr(MAX_VAL == ARBITRARY_PRINTABLE) {
 			if(abg.m_signed) {
 				os << '-';
 			}
 			os << abg.m_data[abg.m_data.size() - 1];
-			for(int itr = abg.m_data.size() - 2; itr > 0; itr--) {
-				os << std::setw(9) << std::setfill('0') << abg.m_data[itr - 1];
+			for(int itr = abg.m_data.size() - 2; itr >= 0; itr--) {
+				os << std::setw(9) << std::setfill('0') << abg.m_data[itr];
 			}
 		} else {
 			ArbitraryBigNum<ARBITRARY_PRINTABLE> result{0};
 			for(int idx = abg.m_data.size() - 1; idx >= 0; idx--) {
 				result *= sc_modVal;
 				result += abg.m_data[idx];
+			}
+			if(abg.m_signed) {
+				result *= -1;
 			}
 			os << result;
 		}
@@ -477,7 +483,7 @@ private:
 	}
 
 	std::pair<ArbitraryBigNum, ArbitraryBigNum> simple_divide(ArbitraryBigNum const& val) const {
-		auto res = std::make_pair<ArbitraryBigNum, ArbitraryBigNum>(0,*this);
+		auto res = std::pair<ArbitraryBigNum, ArbitraryBigNum>{0,*this};
 		if((*this == 0) || (val == 0)) return res;
 		auto check = absolute_compare(*this, val); 
 		if(check == std::weak_ordering::less) {
@@ -499,7 +505,7 @@ private:
 
 			int operations = (dividend_pop_bits - divisor_pop_bits);
 
-			if(operations < 0) return val;
+			if(operations < 0) return res;
 
 			ArbitraryBigNum divisor = val << operations;
 			while((absolute_compare(divisor, val) != std::strong_ordering::less) && (operations >= 0)) {
