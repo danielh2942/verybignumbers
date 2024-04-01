@@ -325,27 +325,28 @@ struct ArbitraryBigNum {
 		if constexpr(MAX_VAL == UINT32_MAX) {
 			auto word_offset = offset >> 5;
 			auto bit_offset = offset & 0x1F;
-			if(offset == 0) return *this;
-			std::uint64_t buff;
+
+			std::uint64_t buff = 0;
 			for(std::size_t idx = 0; idx <= word_offset; idx++) m_data.emplace_back(0);
-			if((m_data.size() == 2) && (word_offset == 0)) {
-				buff = (std::uint64_t)(m_data[0]&0xFFFFFFFF);
-				m_data[1] = (buff >> (32 - bit_offset)) &0xFFFFFFFF;
-				m_data[0] = (buff << bit_offset) & 0xFFFFFFFF;
-			} else {
-				for(int idx = m_data.size() - 2; idx > word_offset; idx--) {
-					buff = (m_data[idx - word_offset] & 0xFFFFFFFF) << bit_offset;
-					buff ^= (m_data[(idx - 1) - word_offset] & 0xFFFFFFFF) >> (32 - bit_offset);
-					m_data[idx] = buff &0xFFFFFFFF;
+
+			// m_data[m_data.size() - 1] 
+
+			for(int idx = m_data.size() - 1; idx > 0; idx--) {
+				buff <<= 32;
+				if(idx - word_offset >= 1) {
+					buff += (m_data[idx - word_offset - 1] & 0xFFFFFFFF);
 				}
+				m_data[idx] = buff >> (32 - bit_offset);
 			}
-			for(std::size_t idx = 0; idx < word_offset; idx++) {
-				m_data[idx] = 0;
+			m_data[0] = (buff << bit_offset) & 0xFFFFFFFF;
+			for(auto i = 0; i < word_offset; i++) {
+				m_data[i] = 0;
 			}
+			// Shrink number :D
 			while((m_data.size() > 1) && (m_data[m_data.size() - 1] == 0)) {
 				m_data.pop_back();
 			}
-		}
+		} 
 		return *this;
 	}
 
@@ -360,32 +361,41 @@ struct ArbitraryBigNum {
 	// Right shift
 	// Does nothing for non-standard numbers :DDDDDD
 	ArbitraryBigNum& operator>>=(std::size_t offset) {
-		if constexpr(MAX_VAL == UINT32_MAX) {
+		if constexpr(MAX_VAL == UINT32_MAX) {	
 			auto word_offset = offset >> 5;
 			auto bit_offset = offset & 0x1F;
 			if(offset == 0) return *this;
-			std::uint64_t buff;
+
 			if(m_data.size() == 1) {
 				if(word_offset > 1) {
 					m_data[0] = 0;
+					m_signed = false;
 				} else {
 					m_data[0] >>= bit_offset;
 				}
-				return  *this;
+				return *this;
 			}
-			if(m_data.size() == 1) {
-				buff = ((std::uint64_t)m_data[0]) & 0xFFFFFFFF;
-			} else {
-				buff = ((std::uint64_t)m_data[m_data.size() - 1] << 32) ^ (m_data[m_data.size() - 2] & 0xFFFFFFFF);
-			}
-			for(auto idx = m_data.size() - word_offset - 1; idx > 0; idx--) {
-				m_data[idx] = buff >> bit_offset;
-				buff <<= 32;
-				buff ^= m_data[idx + word_offset - 1];
-			}
-			m_data[0] = buff >> bit_offset;
 
-			for(auto idx = 0; idx < word_offset; idx++) m_data.pop_back();
+			if(word_offset >= m_data.size()) {
+				while(m_data.size() != 1) m_data.pop_back();
+				m_data[0] = 0;
+				m_signed = false;
+				return *this;
+			}
+			std::uint64_t buff = m_data[word_offset] & 0xFFFFFFFF;
+			for(int idx = 0; idx < m_data.size(); idx++) {	
+				if(idx + word_offset + 1 < m_data.size()) {
+					std::uint64_t tmp = (m_data[idx + word_offset + 1] & 0xFFFFFFFF);
+					tmp <<= 32; 
+					buff += tmp;
+				}
+				m_data[idx] = (buff >> bit_offset) & 0xFFFFFFFF;
+				buff >>= 32;
+			}
+
+			while((m_data.size() != 1) && (m_data[m_data.size() - 1] == 0)) {
+				m_data.pop_back();
+			}
 		}
 		return *this;
 	}
@@ -456,6 +466,12 @@ struct ArbitraryBigNum {
 			os << abg.m_data[abg.m_data.size() - 1];
 			for(int itr = abg.m_data.size() - 2; itr >= 0; itr--) {
 				os << std::setw(9) << std::setfill('0') << abg.m_data[itr];
+			}
+		} else if(stream_hex_mode(os)) {
+			// Hexedecimal output mode
+			os << abg.m_data[abg.m_data.size() - 1];
+			for(int idx = abg.m_data.size() - 2; idx >= 0; idx--) {
+				os << std::setw(8) << std::setfill('0') << abg.m_data[idx];
 			}
 		} else {
 			ArbitraryBigNum<ARBITRARY_PRINTABLE> result{0};

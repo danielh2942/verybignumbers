@@ -66,7 +66,7 @@ TEST_CASE("Check ArbitraryBigNum bitshift left works as expected", "[arbbig_left
 	INFO("a = " << a << " Offset = " << displacement);
 	CHECK(result == res);
 }
-/*
+
 TEST_CASE("Check ArbitraryBigNum bitshift right works as expected", "[arbbig_rightshift]") {
 	auto testVals = GENERATE(take(1000, pair_random<std::uint64_t>(0U,UINT64_MAX)));
 	std::uint64_t a = testVals.first;
@@ -101,4 +101,4 @@ TEST_CASE("Check ArbitraryBigNum modulo operator works as expected", "[arbbig_mo
 	INFO("a = " << a << " b = " << b);
 	CHECK(result == expected);
 }
-*/
+
