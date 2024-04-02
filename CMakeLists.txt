@@ -16,6 +16,8 @@ add_executable(test_fixed_bignum test_fixed_bignum.cpp)
 
 add_executable(test_arbitrary_bignum test_arbitrary_bignum.cpp)
 
+add_executable(demo demo.cpp)
+
 add_executable(factorialtest main.cpp)
 
 add_library(ColdStorage STATIC coldstorage.cpp)
@@ -45,6 +47,7 @@ target_link_libraries(test_coldvector PRIVATE Catch2::Catch2WithMain MyUtils)
 target_link_libraries(test_fixed_bignum PRIVATE Catch2::Catch2WithMain MyUtils)
 target_link_libraries(test_arbitrary_bignum PRIVATE Catch2::Catch2WithMain MyUtils)
 target_link_libraries(factorialtest PRIVATE MyUtils)
+target_link_libraries(demo PRIVATE MyUtils)
 
 include(CTest)
 include(cmake/Catch.cmake)

@@ -497,6 +497,18 @@ struct ArbitraryBigNum {
 		return temp;
 	}
 
+	friend ArbitraryBigNum pow(ArbitraryBigNum const& num, std::size_t power) {
+		if(power == 0) return 1;
+		if(power == 1) return num;
+		if(power % 2 == 0) {
+			auto temp = num * num;
+			return pow(temp, power / 2);
+		} else {
+			auto temp = (num * num);
+			return num * pow(temp, power / 2);
+		}
+	}
+
 private:
 	// Remove leading zeroes from the number :D
 	void shrink_number() {
